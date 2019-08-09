@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from sqlalchemy import Column, Integer, ARRAY, String
+from sqlalchemy import Column, Integer, ARRAY, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 import json
 from adsputils import get_date, UTCDateTime
