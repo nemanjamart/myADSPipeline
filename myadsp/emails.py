@@ -89,6 +89,7 @@ html_template = """
     </html>
 """
 
+
 class Email(object):
     """
     Data structure that contains email content data
@@ -97,6 +98,7 @@ class Email(object):
     msg_html = ''
     subject = ''
     salt = ''
+
 
 class myADSTemplate(Email):
     """

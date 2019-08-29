@@ -5,12 +5,12 @@ import requests
 from datetime import timedelta
 from sqlalchemy.sql.expression import and_
 
+
 class myADSCelery(ADSCelery):
 
     def get_users(self, since='1971-01-01T12:00:00Z'):
         """
         Checks internal storage and vault for all existing and new/updated myADS users. Adds new users to authors table (last_sent should be blank)
-        :param app:
         :param since: used to fetch new users who registered after this date
         :return: list of user_ids
         """
@@ -44,7 +44,8 @@ class myADSCelery(ADSCelery):
         Results newer than ndays old are automatically included in the result.
         Stores new results.
 
-        :param qid: int; ID of the query
+        :param user_id: int; ADSWS user ID
+        :param qid: int; QID of the query (from vault "queries" table)
         :param input_results: list; all results from a given query, as returned from solr
         :param ndays: int; number of days to automatically consider results new
 

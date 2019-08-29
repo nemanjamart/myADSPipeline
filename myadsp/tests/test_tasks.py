@@ -22,23 +22,20 @@ class TestmyADSCelery(unittest.TestCase):
         'database': 'myads_pipeline'
     }
     postgresql_url = 'postgresql://{user}@{host}:{port}/{database}' \
-        .format(
-        user=postgresql_url_dict['user'],
-        host=postgresql_url_dict['host'],
-        port=postgresql_url_dict['port'],
-        database=postgresql_url_dict['database']
-    )
+        .format(user=postgresql_url_dict['user'],
+                host=postgresql_url_dict['host'],
+                port=postgresql_url_dict['port'],
+                database=postgresql_url_dict['database']
+                )
 
     def setUp(self):
         unittest.TestCase.setUp(self)
         proj_home = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-        self.app = app.myADSCelery('test', local_config= \
-            {
-                'SQLALCHEMY_URL': self.postgresql_url,
-                'SQLALCHEMY_ECHO': False,
-                'PROJ_HOME': proj_home,
-                'TEST_DIR': os.path.join(proj_home, 'myadsp/tests'),
-            })
+        self.app = app.myADSCelery('test', local_config={'SQLALCHEMY_URL': self.postgresql_url,
+                                                         'SQLALCHEMY_ECHO': False,
+                                                         'PROJ_HOME': proj_home,
+                                                         'TEST_DIR': os.path.join(proj_home, 'myadsp/tests'),
+                                                         })
         Base.metadata.bind = self.app._session.get_bind()
         Base.metadata.create_all()
 
@@ -86,28 +83,32 @@ class TestmyADSCelery(unittest.TestCase):
             content_type='application/json',
             status=200,
             body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',
-                                              u'title': [u'Gravitational wave signatures from an extended inert doublet dark matter model'],
-                                              u'author_norm': [u'Paul, A', u'Banerjee, B', u'Majumdar, D']},
-                                             {u'bibcode': u'2019arXiv190800678L',
-                                              u'title': [u'Prospects for Gravitational Wave Measurement of ZTFJ1539+5027'],
-                                              u'author_norm': [u'Littenberg, T', u'Cornish, N']}],
-                                            u'numFound': 2,
-                                            u'start': 0},
-                     u'responseHeader': {u'QTime': 5,
-                                         u'params': {u'fl': u'bibcode,title,author_norm',
-                                                     u'q': u'title:"gravity waves" entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"',
-                                                     u'rows': u'2',
-                                                     u'start': u'0',
-                                                     u'wt': u'json',
-                                                     u'x-amzn-trace-id': u'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
-                                                     u'status': 0}})
+                                                      u'title': [u'Gravitational wave signatures from an extended ' +
+                                                                 u'inert doublet dark matter model'],
+                                                      u'author_norm': [u'Paul, A', u'Banerjee, B', u'Majumdar, D']},
+                                                     {u'bibcode': u'2019arXiv190800678L',
+                                                      u'title': [u'Prospects for Gravitational Wave Measurement ' +
+                                                                 u'of ZTFJ1539+5027'],
+                                                      u'author_norm': [u'Littenberg, T', u'Cornish, N']}],
+                                           u'numFound': 2,
+                                           u'start': 0},
+                            u'responseHeader': {u'QTime': 5,
+                                                u'params': {u'fl': u'bibcode,title,author_norm',
+                                                            u'q': u'title:"gravity waves" ' +
+                                                                  u'entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"',
+                                                            u'rows': u'2',
+                                                            u'start': u'0',
+                                                            u'wt': u'json',
+                                                            u'x-amzn-trace-id':
+                                                                u'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
+                                                u'status': 0}})
         )
 
         with patch.object(self.app, 'get_recent_results') as get_recent_results, \
-             patch.object(utils, 'get_user_email') as get_user_email, \
-             patch.object(utils, 'payload_to_plain') as payload_to_plain, \
-             patch.object(utils, 'payload_to_html') as payload_to_html, \
-             patch.object(utils, 'send_email') as send_email:
+            patch.object(utils, 'get_user_email') as get_user_email, \
+            patch.object(utils, 'payload_to_plain') as payload_to_plain, \
+            patch.object(utils, 'payload_to_html') as payload_to_html, \
+            patch.object(utils, 'send_email') as send_email:
 
             get_recent_results.return_value = ['2019arXiv190800829P', '2019arXiv190800678L']
             get_user_email.return_value = 'test@test.com'
@@ -127,10 +128,12 @@ class TestmyADSCelery(unittest.TestCase):
             content_type='application/json',
             status=200,
             body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',
-                                                      u'title': [u'Gravitational wave signatures from an extended inert doublet dark matter model'],
+                                                      u'title': [u'Gravitational wave signatures from an ' +
+                                                                 u'extended inert doublet dark matter model'],
                                                       u'author_norm': [u'Paul, A', u'Banerjee, B', u'Majumdar, D']},
                                                      {u'bibcode': u'2019arXiv190800678L',
-                                                      u'title': [u'Prospects for Gravitational Wave Measurement of ZTFJ1539+5027'],
+                                                      u'title': [u'Prospects for Gravitational Wave Measurement ' +
+                                                                 u'of ZTFJ1539+5027'],
                                                       u'author_norm': [u'Littenberg, T', u'Cornish, N']}],
                                            u'numFound': 2,
                                            u'start': 0},
@@ -141,15 +144,16 @@ class TestmyADSCelery(unittest.TestCase):
                                                              u'rows': u'2',
                                                              u'start': u'0',
                                                              u'wt': u'json',
-                                                             u'x-amzn-trace-id': u'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
+                                                             u'x-amzn-trace-id':
+                                                                 u'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
                                                  u'status': 0}})
         )
 
         with patch.object(self.app, 'get_recent_results') as get_recent_results, \
-             patch.object(utils, 'get_user_email') as get_user_email, \
-             patch.object(utils, 'payload_to_plain') as payload_to_plain, \
-             patch.object(utils, 'payload_to_html') as payload_to_html, \
-             patch.object(utils, 'send_email') as send_email:
+            patch.object(utils, 'get_user_email') as get_user_email, \
+            patch.object(utils, 'payload_to_plain') as payload_to_plain, \
+            patch.object(utils, 'payload_to_html') as payload_to_html, \
+            patch.object(utils, 'send_email') as send_email:
 
             get_recent_results.return_value = ['2019arXiv190800829P', '2019arXiv190800678L']
             get_user_email.return_value = 'test@test.com'

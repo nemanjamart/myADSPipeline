@@ -21,23 +21,20 @@ class TestmyADSCelery(unittest.TestCase):
         'database': 'myads_pipeline'
     }
     postgresql_url = 'postgresql://{user}@{host}:{port}/{database}' \
-        .format(
-        user=postgresql_url_dict['user'],
-        host=postgresql_url_dict['host'],
-        port=postgresql_url_dict['port'],
-        database=postgresql_url_dict['database']
-    )
+        .format(user=postgresql_url_dict['user'],
+                host=postgresql_url_dict['host'],
+                port=postgresql_url_dict['port'],
+                database=postgresql_url_dict['database']
+                )
 
     def setUp(self):
         unittest.TestCase.setUp(self)
         proj_home = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-        self.app = app.myADSCelery('test', local_config= \
-            {
-                'SQLALCHEMY_URL': self.postgresql_url,
-                'SQLALCHEMY_ECHO': False,
-                'PROJ_HOME': proj_home,
-                'TEST_DIR': os.path.join(proj_home, 'myadsp/tests'),
-            })
+        self.app = app.myADSCelery('test', local_config={'SQLALCHEMY_URL': self.postgresql_url,
+                                                         'SQLALCHEMY_ECHO': False,
+                                                         'PROJ_HOME': proj_home,
+                                                         'TEST_DIR': os.path.join(proj_home, 'myadsp/tests'),
+                                                         })
         Base.metadata.bind = self.app._session.get_bind()
         Base.metadata.create_all()
 

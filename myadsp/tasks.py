@@ -17,6 +17,7 @@ app.conf.CELERY_QUEUES = (
 )
 logger = app.logger
 
+
 @app.task(queue='process')
 def task_process_myads(message):
     """
@@ -34,10 +35,10 @@ def task_process_myads(message):
 
     if 'userid' not in message:
         logger.error('No user ID received for {0}'.format(message))
-        raise RuntimeError('Bad input supplied - no userid')
+        return
     if 'frequency' not in message:
         logger.error('No frequency received for {0}'.format(message))
-        raise RuntimeError('Bad input supplied - no frequency supplied')
+        return
 
     userid = message['userid']
     with app.session_scope() as session:
@@ -45,7 +46,8 @@ def task_process_myads(message):
         if q.last_sent and q.last_sent.date() == adsputils.get_date().date():
             # already sent email today
             if not message['force']:
-                raise RuntimeError('Email for user {0} already sent today'.format(userid))
+                logger.warning('Email for user {0} already sent today'.format(userid))
+                return
             else:
                 logger.info('Email for user {0} already sent today, but force mode is on'.format(userid))
 
@@ -56,7 +58,8 @@ def task_process_myads(message):
 
     if r.status_code != 200:
         task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
-        raise RuntimeError('Failed getting myADS setup for {0}'.format(userid))
+        logger.warning('Failed getting myADS setup for {0}; will try again later'.format(userid))
+        return
 
     # then execute each qid /vault/execute-query/qid
     setup = r.json()
@@ -85,9 +88,9 @@ def task_process_myads(message):
             # for stateful queries, remove previously seen results, store new results
             if s['stateful']:
                 good_bibc = app.get_recent_results(user_id=userid,
-                                                 qid=s['qid'],
-                                                 input_results=bibc,
-                                                 ndays=app.conf.get('STATEFUL_RESULTS_DAYS', 7))
+                                                   qid=s['qid'],
+                                                   input_results=bibc,
+                                                   ndays=app.conf.get('STATEFUL_RESULTS_DAYS', 7))
                 results = [doc for doc in docs if doc['bibcode'] in good_bibc]
             else:
                 results = docs
@@ -136,4 +139,5 @@ def task_process_myads(message):
 
     else:
         task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
-        raise RuntimeError('Error sending myADS email for user {0}, email {1}; rerunning'.format(userid, email))
+        logger.warning('Error sending myADS email for user {0}, email {1}; rerunning'.format(userid, email))
+

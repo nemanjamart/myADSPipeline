@@ -1,5 +1,5 @@
 from adsputils import get_date, setup_logging, load_config
-from .emails import  Email
+from .emails import Email
 
 import requests
 import smtplib, ssl
@@ -10,17 +10,18 @@ logger = setup_logging('myads_utils')
 config = {}
 config.update(load_config())
 
+
 def send_email(email_addr='', email_template=Email, payload_plain=None, payload_html=None, subject=None):
     """
     Encrypts a payload using itsDangerous.TimeSerializer, adding it along with a base
     URL to an email template. Sends an email with this data using the current app's
     'mail' extension.
-    :param email_addr:
-    :type email_addr: basestring
+    :param email_addr: basestring
     :param email_template: emails.Email
-    :param payload
-    :return: msg,token
-    :rtype flask.ext.mail.Message, basestring
+    :param payload_plain: basestring
+    :param payload_html: basestring (formatted HTML)
+    :param subject: basestring
+    :return: msg: MIMEMultipart
     """
     if (email_addr == '') or (email_addr is None):
         logger.warning('No email address passed for myADS notifications. Not sending email')
@@ -51,11 +52,12 @@ def send_email(email_addr='', email_template=Email, payload_plain=None, payload_
                             email_addr,
                             msg.as_string())
     except:
-        logger.warning('Error sending email to {0} with payload: {1}'.format(email_addr, plain))
+        logger.error('Error sending email to {0} with payload: {1}'.format(email_addr, plain))
         return None
 
     logger.info('Email sent to {0} with payload: {1}'.format(email_addr, plain))
     return msg
+
 
 def get_user_email(userid=None):
     """
@@ -77,10 +79,12 @@ def get_user_email(userid=None):
         logger.error('No user ID supplied to fetch email')
         return None
 
+
 def _get_first_author_formatted(result_dict, author_field='author_norm'):
     """
     Get the first author, format it correctly
     :param result_dict: dict containing the results from solr for a single bibcode, including the author list
+    :param author_field: Solr field to select first author from
     :return: formatted first author
     """
 
@@ -100,6 +104,7 @@ def _get_first_author_formatted(result_dict, author_field='author_norm'):
 
     return first_author
 
+
 def payload_to_plain(payload=None):
     """
     Converts the myADS results into the plain text message payload
@@ -111,23 +116,25 @@ def payload_to_plain(payload=None):
         formatted += "{0} ({1}) \n".format(p['name'], p['query_url'])
         for r in p['results']:
             first_author = _get_first_author_formatted(r)
-            if type(r.get('title','')) == list:
+            if type(r.get('title', '')) == list:
                 title = r.get('title')[0]
             else:
-                title = r.get('title','')
+                title = r.get('title', '')
             formatted += "{0}: {1} {2}\n".format(r['bibcode'], first_author, title)
         formatted += "\n"
 
     return formatted
 
+
 def payload_to_html(payload=None, col=1):
     """
     Converts the myADS results into the HTML formatted message payload
     :param payload: list of dicts
+    :param col: number of columns to display in formatted email (1 or 2)
     :return: HTML formatted payload
     """
     start_col = '''<td align="center" valign="top" width="{0}" class="templateColumnContainer">\n''' + \
-                    '''    <table border="0" cellpadding="10" cellspacing="0" width="100%">\n'''
+                '''    <table border="0" cellpadding="10" cellspacing="0" width="100%">\n'''
     end_col = '''</table>\n</td>\n'''
     head = '<h3><a href="{0}" style="color: #1C459B; font-style: italic;font-weight: bold;">{1}</a></h3>'
     item = '<a href="{0}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{1}</a> {2} {3}<br>'
@@ -188,5 +195,6 @@ def payload_to_html(payload=None, col=1):
         return formatted
 
     else:
-        logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.format(col, payload))
+        logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.
+                       format(col, payload))
         return None

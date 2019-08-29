@@ -24,7 +24,7 @@ API_ADSWS_USER_EMAIL = API_ENDPOINT + '/v1/user/%s'
 # For stateful results, number of days after which we will consider a result stale and no longer show it
 STATEFUL_RESULTS_DAYS = 7
 
-# Reschedule sending if there's an error
+# Reschedule sending if there's an error (units=seconds)
 MYADS_RESEND_WINDOW = 60*10
 
 MAIL_DEFAULT_SENDER = 'no-reply@adslabs.org'

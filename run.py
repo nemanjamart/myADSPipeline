@@ -1,3 +1,7 @@
+from adsputils import setup_logging, get_date
+from myadsp import tasks, utils
+from myadsp.models import KeyValue
+
 import sys
 import time
 import argparse
@@ -8,12 +12,9 @@ import warnings
 from requests.packages.urllib3 import exceptions
 warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
 
-from adsputils import setup_logging, get_date
-from myadsp import tasks, utils
-from myadsp.models import KeyValue
-
 app = tasks.app
 logger = setup_logging('run.py')
+
 
 def process_myads(since=None, user_ids=None, frequency='daily', **kwargs):
     """
@@ -21,20 +22,21 @@ def process_myads(since=None, user_ids=None, frequency='daily', **kwargs):
 
     :param since: check for new myADS users since this date
     :param user_ids: users to process claims for, else all users - list
-
+    :param frequency: basestring; 'daily' or 'weekly'
     :return: no return
     """
     if user_ids:
         for u in user_ids:
-            tasks.task_process_myads({'userid':u, 'frequency': frequency, 'force': True})
+            tasks.task_process_myads({'userid': u, 'frequency': frequency, 'force': True})
             logger.info('Done (just the supplied user IDs)')
             return
 
     logging.captureWarnings(True)
 
+    # if since keyword not provided, since is set to timestamp of last processing
     if not since or isinstance(since, basestring) and since.strip() == "":
         with app.session_scope() as session:
-            if frequency=='daily':
+            if frequency == 'daily':
                 kv = session.query(KeyValue).filter_by(key='last.process.daily').first()
             else:
                 kv = session.query(KeyValue).filter_by(key='last.process.weekly').first()
@@ -46,8 +48,8 @@ def process_myads(since=None, user_ids=None, frequency='daily', **kwargs):
     users_since_date = get_date(since)
     logger.info('Processing {0} myADS queries since: {1}'.format(frequency, users_since_date.isoformat()))
 
-    all_users = app.get_users(users_since_date.isoformat())
     last_process_date = get_date()
+    all_users = app.get_users(users_since_date.isoformat())
 
     for user in all_users:
         try:
@@ -57,13 +59,14 @@ def process_myads(since=None, user_ids=None, frequency='daily', **kwargs):
             print 'Conn problem, retrying...', user
             tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': False})
 
+    # update last processed timestamp
     with app.session_scope() as session:
-        if frequency=='daily':
+        if frequency == 'daily':
             kv = session.query(KeyValue).filter_by(key='last.process.daily').first()
         else:
             kv = session.query(KeyValue).filter_by(key='last.process.weekly').first()
         if kv is None:
-            if frequency=='daily':
+            if frequency == 'daily':
                 kv = KeyValue(key='last.process.daily', value=last_process_date.isoformat())
             else:
                 kv = KeyValue(key='last.process.weekly', value=last_process_date.isoformat())
@@ -72,7 +75,7 @@ def process_myads(since=None, user_ids=None, frequency='daily', **kwargs):
             kv.value = last_process_date.isoformat()
         session.commit()
 
-    print 'Done'
+    print 'Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users))
     logger.info('Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users)))
 
 
