@@ -10,12 +10,13 @@ CELERY_BROKER = 'pyamqp://'
 
 API_TOKEN = 'fix me'
 
-UI_ENDPOINT = 'https://ui.adsabs.harvard.edu/'
+UI_ENDPOINT = 'https://ui.adsabs.harvard.edu'
 ABSTRACT_UI_ENDPOINT = UI_ENDPOINT + '/abs/%s/abstract'
 BIGQUERY_ENDPOINT = UI_ENDPOINT + '/search/q=docs(%s)'
-QUERY_ENDPOINT = UI_ENDPOINT + '/search/q=%s'
+QUERY_ENDPOINT = UI_ENDPOINT + '/search/%s'
 
 API_ENDPOINT = 'https://api.adsabs.harvard.edu'
+API_SOLR_QUERY_ENDPOINT = API_ENDPOINT + '/v1/search/query/'
 API_VAULT_MYADS_USERS = API_ENDPOINT + '/v1/vault/myads-users/%s'
 API_VAULT_MYADS_SETUP = API_ENDPOINT + '/v1/vault/get-myads/%s'
 API_VAULT_EXECUTE_QUERY = API_ENDPOINT + '/v1/vault/execute_query/%s?fl=%s&rows=%s'

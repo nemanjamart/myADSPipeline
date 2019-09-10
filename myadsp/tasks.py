@@ -64,50 +64,38 @@ def task_process_myads(message):
     # then execute each qid /vault/execute-query/qid
     setup = r.json()
     payload = []
-    fields = 'bibcode,title,author_norm'
     for s in setup:
         if s['frequency'] == message['frequency']:
             # only return 5 results, unless it's the daily arXiv posting, then return max
-            # TODO should all stateful queries return all results or will this be overwhelming for some? well-cited users can get 40+ new cites in one weekly astro update
+            # TODO should all stateful queries return all results or will this be overwhelming for some? well-cited
+            # users can get 40+ new cites in one weekly astro update
             if s['frequency'] == 'daily' and s['stateful'] is False:
-                rows = 2000
+                s['rows'] = 2000
             else:
-                rows = 5
-            # sort by entdate desc here (or filter w/ fq), or suggest sort order in setup?
-            q = requests.get(app.conf.get('API_VAULT_EXECUTE_QUERY') % (s['qid'], fields, rows),
-                             headers={'Accept': 'application/json',
-                                      'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
-            if q.status_code == 200:
-                docs = json.loads(q.text)['response']['docs']
-                bibc = [doc['bibcode'] for doc in docs]
-                q_params = json.loads(q.text)['responseHeader']['params']
+                s['rows'] = 5
+            s['fields'] = 'bibcode,title,author_norm'
+            if s['type'] == 'query':
+                raw_results = utils.get_query_results(s)
+            elif s['type'] == 'template':
+                raw_results = utils.get_template_query_results(s)
             else:
-                logger.error('Failed getting new results for {0} for user {1}'.format(s, userid))
-                bibc = []
+                logger.warning('Wrong query type passed for query {0}, user {1}'.format(s, userid))
+                pass
 
-            # for stateful queries, remove previously seen results, store new results
-            if s['stateful']:
-                good_bibc = app.get_recent_results(user_id=userid,
-                                                   qid=s['qid'],
-                                                   input_results=bibc,
-                                                   ndays=app.conf.get('STATEFUL_RESULTS_DAYS', 7))
-                results = [doc for doc in docs if doc['bibcode'] in good_bibc]
-            else:
-                results = docs
-
-            if q_params:
-                # bigquery
-                if q_params.get('fq', None) == u'{!bitset}':
-                    query_url = app.conf.get('BIGQUERY_ENDPOINT') % s['qid']
-                # regular query
+            for r in raw_results:
+                # for stateful queries, remove previously seen results, store new results
+                if s['stateful']:
+                    docs = r['results']
+                    bibcodes = [doc['bibcode'] for doc in docs]
+                    good_bibc = app.get_recent_results(user_id=userid,
+                                                       qid=s['qid'],
+                                                       input_results=bibcodes,
+                                                       ndays=app.conf.get('STATEFUL_RESULTS_DAYS', 7))
+                    results = [doc for doc in docs if doc['bibcode'] in good_bibc]
                 else:
-                    query_url = app.conf.get('QUERY_ENDPOINT') % q_params['q']
-            else:
-                # no parameters returned - should this url be something else?
-                query_url = app.conf.get('UI_ENDPOINT')
+                    results = r['results']
 
-            # TODO email formatting
-            payload.append({'name': s['name'], 'query_url': query_url, 'results': results})
+                payload.append({'name': r['name'], 'query_url': r['query_url'], 'results': results})
         else:
             # wrong frequency for this round of processing
             pass

@@ -2,6 +2,8 @@ import unittest
 import os
 import httpretty
 from mock import patch
+import urllib
+import json
 
 import adsputils as utils
 from myadsp import app, utils
@@ -99,6 +101,308 @@ class TestmyADSCelery(unittest.TestCase):
 
         self.assertEquals(email, 'test@test.com')
 
+    @httpretty.activate
+    def test_get_query_results(self):
+        myADSsetup = {'name': 'Test Query',
+                      'qid': 1,
+                      'active': True,
+                      'stateful': False,
+                      'frequency': 'weekly',
+                      'type': 'query',
+                      'rows': 5,
+                      'fields': 'bibcode,title,author_norm'}
+
+        httpretty.register_uri(
+            httpretty.GET, self.app._config.get('API_VAULT_EXECUTE_QUERY') % (1, myADSsetup['fields'], 5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {"q": "author:Kurtz",
+                                                           "fl": "bibcode,title,author_norm",
+                                                           "start": "0",
+                                                           "sort": "score desc",
+                                                           "rows": "5",
+                                                           "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"]}]}})
+        )
+
+        results = utils.get_query_results(myADSsetup)
+
+        self.assertEqual(results, [{'name': myADSsetup['name'],
+                                    'query_url': self.app._config.get('QUERY_ENDPOINT') %
+                                    urllib.urlencode({"q": "author:Kurtz",
+                                                      "sort": "score desc"}),
+                                    'results': [{"bibcode": "1971JVST....8..324K",
+                                                 "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                 "author_norm": ["Kurtz, J"]}]
+                                    }])
+
+    @httpretty.activate
+    def test_get_template_query_results(self):
+        # test arxiv query
+        myADSsetup = {'name': 'Test Query - arxiv',
+                      'qid': 1,
+                      'active': True,
+                      'stateful': False,
+                      'frequency': 'weekly',
+                      'type': 'template',
+                      'template': 'arxiv',
+                      'data': {'data': 'AGN', 'classes': 'astro-ph'},
+                      'fields': 'bibcode,title,author_norm',
+                      'rows': 2000}
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                         format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                                query=urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph) OR (AGN)) entdate:["NOW-2DAYS" TO NOW]'),
+                                sort=urllib.quote_plus('score desc'),
+                                fields='bibcode,title,author_norm',
+                                rows=2000),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {"q": "bibstem:arxiv ((arxiv_class:astro-ph) OR (AGN)) entdate:['NOW-2DAYS' TO NOW]",
+                                                           "fl": "bibcode,title,author_norm",
+                                                           "start": "0",
+                                                           "sort": "score desc",
+                                                           "rows": "5",
+                                                           "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"]}]}})
+        )
+
+        results = utils.get_template_query_results(myADSsetup)
+        self.assertEqual(results, [{'name': myADSsetup['name'],
+                                   'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                         format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph) OR (AGN)) entdate:["NOW-2DAYS" TO NOW]'),
+                                urllib.quote_plus("score desc")),
+                                   'results': [{u"bibcode": u"1971JVST....8..324K",
+                                                 u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                 u"author_norm": [u"Kurtz, J"]}]}])
+
+        # test citations query
+        myADSsetup = {'name': 'Test Query - citations',
+                      'qid': 1,
+                      'active': True,
+                      'stateful': True,
+                      'frequency': 'weekly',
+                      'type': 'template',
+                      'template': 'citations',
+                      'data': {'data': 'author:Kurtz'},
+                      'fields': 'bibcode,title,author_norm',
+                      'rows': 5}
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                       query=urllib.quote_plus(
+                           'citations(author:Kurtz)'),
+                       sort=urllib.quote_plus('date desc'),
+                       fields='bibcode,title,author_norm',
+                       rows=5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {
+                                                    "q": "citations(author:Kurtz)",
+                                                    "fl": "bibcode,title,author_norm",
+                                                    "start": "0",
+                                                    "sort": "date desc",
+                                                    "rows": "5",
+                                                    "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": [
+                                                        "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"]}]}})
+        )
+
+        results = utils.get_template_query_results(myADSsetup)
+        self.assertEqual(results, [{'name': myADSsetup['name'],
+                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                         format(urllib.quote_plus('citations(author:Kurtz)'),
+                                urllib.quote_plus("date desc")),
+                                    'results': [{u"bibcode": u"1971JVST....8..324K",
+                                                 u"title": [
+                                                     u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                 u"author_norm": [u"Kurtz, J"]}]}])
+
+        # test authors query
+        myADSsetup = {'name': 'Test Query - authors',
+                      'qid': 1,
+                      'active': True,
+                      'stateful': True,
+                      'frequency': 'weekly',
+                      'type': 'template',
+                      'template': 'authors',
+                      'data': {'data': 'author:Kurtz'},
+                      'fields': 'bibcode,title,author_norm',
+                      'rows': 5}
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                       query=urllib.quote_plus(
+                           'author:Kurtz'),
+                       sort=urllib.quote_plus('score desc'),
+                       fields='bibcode,title,author_norm',
+                       rows=5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {
+                                                    "q": "author:Kurtz",
+                                                    "fl": "bibcode,title,author_norm",
+                                                    "start": "0",
+                                                    "sort": "score desc",
+                                                    "rows": "5",
+                                                    "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": [
+                                                        "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"]}]}})
+        )
+
+        results = utils.get_template_query_results(myADSsetup)
+        self.assertEqual(results, [{'name': myADSsetup['name'],
+                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                         format(urllib.quote_plus('author:Kurtz'),
+                                urllib.quote_plus("score desc")),
+                                    'results': [{u"bibcode": u"1971JVST....8..324K",
+                                                 u"title": [
+                                                     u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                 u"author_norm": [u"Kurtz, J"]}]}])
+
+        # test keyword query
+        myADSsetup = {'name': 'Test Query - keywords',
+                      'qid': 1,
+                      'active': True,
+                      'stateful': True,
+                      'frequency': 'weekly',
+                      'type': 'template',
+                      'template': 'keyword',
+                      'data': {'data': 'AGN'},
+                      'fields': 'bibcode,title,author_norm',
+                      'rows': 5}
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                       query=urllib.quote_plus('AGN'),
+                       sort=urllib.quote_plus('entdate desc'),
+                       fields='bibcode,title,author_norm',
+                       rows=5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {
+                                                    "q": "AGN",
+                                                    "fl": "bibcode,title,author_norm",
+                                                    "start": "0",
+                                                    "sort": "entdate desc",
+                                                    "rows": "5",
+                                                    "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"]}]}})
+        )
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                       query=urllib.quote_plus('trending(AGN)'),
+                       sort=urllib.quote_plus('score desc'),
+                       fields='bibcode,title,author_norm',
+                       rows=5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {
+                                                    "q": "trending(AGN)",
+                                                    "fl": "bibcode,title,author_norm",
+                                                    "start": "0",
+                                                    "sort": "score desc",
+                                                    "rows": "5",
+                                                    "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": [
+                                                        "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"]}]}})
+        )
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                       query=urllib.quote_plus('useful(AGN)'),
+                       sort=urllib.quote_plus('score desc'),
+                       fields='bibcode,title,author_norm',
+                       rows=5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {
+                                                    "q": "useful(AGN)",
+                                                    "fl": "bibcode,title,author_norm",
+                                                    "start": "0",
+                                                    "sort": "score desc",
+                                                    "rows": "5",
+                                                    "wt": "json"}},
+                             "response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": [
+                                                        "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"]}]}})
+        )
+
+        results = utils.get_template_query_results(myADSsetup)
+        self.assertEqual(results, [{'name': 'AGN - Recent Papers',
+                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                         format(urllib.quote_plus('AGN'),
+                                urllib.quote_plus("entdate desc")),
+                                    'results': [{u"bibcode": u"1971JVST....8..324K",
+                                                 u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                 u"author_norm": [u"Kurtz, J"]}]},
+                                   {'name': 'AGN - Most Popular',
+                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                         format(urllib.quote_plus('trending(AGN)'),
+                                urllib.quote_plus("score desc")),
+                                    'results': [{u"bibcode": u"1971JVST....8..324K",
+                                                 u"title": [
+                                                     u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                 u"author_norm": [u"Kurtz, J"]}]},
+                                   {'name': 'AGN - Most Cited',
+                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                         format(urllib.quote_plus('useful(AGN)'),
+                                urllib.quote_plus("score desc")),
+                                    'results': [{u"bibcode": u"1971JVST....8..324K",
+                                                 u"title": [
+                                                     u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                 u"author_norm": [u"Kurtz, J"]}]}
+                                   ])
+
+
     def test_get_first_author_formatted(self):
         results_dict = {"bibcode": "2012ApJS..199...26H",
                         "title": ["The 2MASS Redshift Survey: Description and Data Release"],
@@ -132,7 +436,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[4].strip(),
                           '<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
                           'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn('href="https://ui.adsabs.harvard.edu//abs/2012yCat..51392620N/abstract"', split_payload[5])
+        self.assertIn('href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[5])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
@@ -141,7 +445,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[4].strip(),
                           '<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
                           'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn('href="https://ui.adsabs.harvard.edu//abs/2012yCat..51392620N/abstract"', split_payload[5])
+        self.assertIn('href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[5])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)

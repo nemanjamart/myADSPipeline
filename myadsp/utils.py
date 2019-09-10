@@ -5,6 +5,8 @@ import requests
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import urllib
+import json
 
 logger = setup_logging('myads_utils')
 config = {}
@@ -78,6 +80,106 @@ def get_user_email(userid=None):
     else:
         logger.error('No user ID supplied to fetch email')
         return None
+
+
+def get_query_results(myADSsetup=None):
+    """
+    Retrieves results for a stored query
+    :param myADSsetup: dict containing query ID and metadata
+    :return: payload: list of dicts containing query name, query url, raw search results
+    """
+
+    q = requests.get(config.get('API_VAULT_EXECUTE_QUERY') %
+                     (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows']),
+                     headers={'Accept': 'application/json',
+                              'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
+    if q.status_code == 200:
+        docs = json.loads(q.text)['response']['docs']
+        q_params = json.loads(q.text)['responseHeader']['params']
+    else:
+        logger.error('Failed getting results for QID {0}'.format(myADSsetup['qid']))
+        docs = []
+        q_params = None
+
+    if q_params:
+        # bigquery
+        if q_params.get('fq', None) == u'{!bitset}':
+            query_url = config.get('BIGQUERY_ENDPOINT') % myADSsetup['qid']
+        # regular query
+        else:
+            urlparams = {'q': q_params.get('q', None), 'sort': q_params.get('sort', 'bibcode+desc')}
+            query_url = config.get('QUERY_ENDPOINT') % urllib.urlencode(urlparams)
+    else:
+        # no parameters returned - should this url be something else?
+        query_url = config.get('UI_ENDPOINT')
+
+    return [{'name': myADSsetup['name'], 'query_url': query_url, 'results': docs}]
+
+
+def get_template_query_results(myADSsetup=None):
+    """
+    Retrieves results for a templated query
+    :param myADSsetup: dict containing query terms and metadata
+    :return: payload: list of dicts containing query name, query url, raw search results
+    """
+    q = []
+    sort = []
+    if myADSsetup['template'] in ['arxiv', 'citations', 'authors']:
+        name = [myADSsetup['name']]
+    else:
+        name = []
+    if myADSsetup['template'] == 'arxiv':
+        if type(myADSsetup['data']['classes']) != list:
+            tmp = [myADSsetup['data']['classes']]
+        else:
+            tmp = myADSsetup['data']['classes']
+        classes = ' OR '.join(['arxiv_class:' + x for x in tmp])
+        keywords = myADSsetup['data']['data']
+        q.append('bibstem:arxiv (({0}) OR ({1})) entdate:["NOW-2DAYS" TO NOW]'.format(classes, keywords))
+        sort.append('score desc')
+    elif myADSsetup['template'] == 'citations':
+        keywords = myADSsetup['data']['data']
+        q.append('citations({0})'.format(keywords))
+        sort.append('date desc')
+    elif myADSsetup['template'] == 'authors':
+        keywords = myADSsetup['data']['data']
+        q.append('{0}'.format(keywords))
+        sort.append('score desc')
+    elif myADSsetup['template'] == 'keyword':
+        keywords = myADSsetup['data']['data']
+        # most recent
+        q.append('{0}'.format(keywords))
+        sort.append('entdate desc')
+        name.append('{0} - Recent Papers'.format(keywords))
+        # most popular
+        q.append('trending({0})'.format(keywords))
+        sort.append('score desc')
+        name.append('{0} - Most Popular'.format(keywords))
+        # most cited
+        q.append('useful({0})'.format(keywords))
+        sort.append('score desc')
+        name.append('{0} - Most Cited'.format(keywords))
+
+    payload = []
+    for i in range(len(q)):
+        query = '{endpoint}?q={query}&sort={sort}'. \
+                         format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
+                                query=urllib.quote_plus(q[i]),
+                                sort=urllib.quote_plus(sort[i]))
+        r = requests.get('{query_url}&fl={fields}&rows={rows}'.
+                         format(query_url=query,
+                                fields=myADSsetup['fields'],
+                                rows=myADSsetup['rows']),
+                         headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
+
+        if r.status_code != 200:
+            logger.error('Failed getting results for query {0}'.format(q[i]))
+            docs = []
+        else:
+            docs = json.loads(r.text)['response']['docs']
+        payload.append({'name': name[i], 'query_url': query, 'results': docs})
+
+    return payload
 
 
 def _get_first_author_formatted(result_dict, author_field='author_norm'):

@@ -53,14 +53,16 @@ class TestmyADSCelery(unittest.TestCase):
         msg = {'frequency': 'daily'}
 
         # can't process without a user ID
-        with self.assertRaises(RuntimeError):
+        with patch.object(tasks.logger, 'error', return_value=None) as logger:
             tasks.task_process_myads(msg)
+            logger.assert_called_with(u"No user ID received for {0}".format(msg))
 
         msg = {'userid': 123}
 
         # can't process without a frequency
-        with self.assertRaises(RuntimeError):
+        with patch.object(tasks.logger, 'error', return_value=None) as logger:
             tasks.task_process_myads(msg)
+            logger.assert_called_with(u"No frequency received for {0}".format(msg))
 
         # add user for processing, this normally happens in run.py if necessary
         user = AuthorInfo(id=123, created=adsputils.get_date())
@@ -74,8 +76,27 @@ class TestmyADSCelery(unittest.TestCase):
             httpretty.GET, self.app.conf['API_VAULT_MYADS_SETUP'] % msg['userid'],
             content_type='application/json',
             status=200,
-            body=json.dumps([{'name': 'Query 1', 'qid': 1, 'active': True, 'stateful': True, 'frequency': 'daily'},
-                 {'name': 'Query 2', 'qid': 2, 'active': True, 'stateful': False, 'frequency': 'weekly'}])
+            body=json.dumps([{'name': 'Query 1',
+                              'qid': 1,
+                              'active': True,
+                              'stateful': True,
+                              'frequency': 'daily',
+                              'type': 'query'},
+                             {'name': 'Query 2',
+                              'qid': 2,
+                              'active': True,
+                              'stateful': False,
+                              'frequency': 'weekly',
+                              'type': 'query'},
+                             {'name': 'Query 3',
+                              'qid': 3,
+                              'active': True,
+                              'stateful': False,
+                              'frequency': 'weekly',
+                              'type': 'template',
+                              'template': 'authors',
+                              'data': {'data': 'author:Kurtz'}}
+                             ])
         )
 
         httpretty.register_uri(
@@ -148,6 +169,38 @@ class TestmyADSCelery(unittest.TestCase):
                                                                  u'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
                                                  u'status': 0}})
         )
+        httpretty.register_uri(
+            httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT']+'?q={0}&sort={1}&fl={2}&rows={3}'.
+            format('author:Kurtz', 'score+desc+bibcode+desc', 'bibcode,title,author_norm', 5),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"responseHeader": {"status": 0,
+                                                "QTime": 23,
+                                                "params": {"q": "author:Kurtz",
+                                                           "x-amzn-trace-id": "Root=1-5d769c6c-f96bfa49d348f03d8ecb7464",
+                                                           "fl": "bibcode,title,author_norm",
+                                                           "start": "0",
+                                                           "sort": "score desc",
+                                                           "rows": "5",
+                                                           "wt": "json"}},
+                             "response": {"numFound": 2712,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": ["High-Capacity Lead Tin Barrel Dome..."],
+                                                    "author_norm": ["Kurtz, J"]},
+                                                   {"bibcode": "1972ApJ...178..701K",
+                                                    "title": ["Search for Coronal Line Emission from the Cygnus Loop"],
+                                                    "author_norm": ["Kurtz, D", "Vanden Bout, P", "Angel, J"]},
+                                                   {"bibcode": "1973ApOpt..12..891K",
+                                                    "title": ["Author's Reply to Comments on: Experimental..."],
+                                                    "author_norm":["Kurtz, R"]},
+                                                   {"bibcode": "1973SSASJ..37..725W",
+                                                    "title": ["Priming Effect of 15N-Labeled Fertilizers..."],
+                                                    "author_norm": ["Westerman, R","Kurtz, L"]},
+                                                   {"bibcode": "1965JSpRo...2..818K",
+                                                    "title": ["Orbital tracking and decay analysis of the saturn..."],
+                                                    "author_norm":["Kurtz, H", "McNair, A", "Naumcheff, M"]}]}})
+        )
 
         with patch.object(self.app, 'get_recent_results') as get_recent_results, \
             patch.object(utils, 'get_user_email') as get_user_email, \
@@ -162,8 +215,9 @@ class TestmyADSCelery(unittest.TestCase):
             send_email.return_value = 'this should be a MIMEMultipart object'
 
             # already ran today, tried to run again without force=True
-            with self.assertRaises(RuntimeError):
+            with patch.object(tasks.logger, 'warning', return_value=None) as logger:
                 tasks.task_process_myads(msg)
+                logger.assert_called_with(u"Email for user {0} already sent today".format(msg['userid']))
 
             msg = {'userid': 123, 'frequency': 'weekly'}
 
