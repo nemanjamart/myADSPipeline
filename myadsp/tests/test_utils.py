@@ -14,20 +14,18 @@ payload = [{'name': 'Query 1',
                     'query_url': 'https://path/to/query',
                     'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
                                  "bibcode":"2012yCat..51392620N",
-                                 "title":["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters " +
-                                          "(Nantais+, 2010)"]},
+                                 "title":["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"]},
                                 {"author_norm": ["Huchra, J", "Macri, L"],
                                  "bibcode":"2012ApJS..199...26H",
                                  "title":["The 2MASS Redshift Survey Description and Data Release"]}]},
-                    {'name': 'Query 2',
-                     'query_url': 'https://path/to/query',
-                     'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
-                                  "bibcode": "2012yCat..51392620N",
-                                  "title": ["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters " +
-                                            "(Nantais+, 2010)"]},
-                                 {"author_norm": ["Huchra, J", "Macri, L"],
-                                  "bibcode": "2012ApJS..199...26H",
-                                  "title": ["The 2MASS Redshift Survey Description and Data Release"]}]}]
+           {'name': 'Query 2',
+                    'query_url': 'https://path/to/query',
+                    'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
+                                 "bibcode": "2012yCat..51392620N",
+                                 "title": ["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"]},
+                                {"author_norm": ["Huchra, J", "Macri, L"],
+                                 "bibcode": "2012ApJS..199...26H",
+                                 "title": ["The 2MASS Redshift Survey Description and Data Release"]}]}]
 
 
 class TestmyADSCelery(unittest.TestCase):
@@ -41,7 +39,7 @@ class TestmyADSCelery(unittest.TestCase):
         'user': 'postgres',
         'database': 'myads_pipeline'
     }
-    postgresql_url = 'postgresql://{user}@{host}:{port}/{database}' \
+    postgresql_url = 'postgresql://{user}:{user}@{host}:{port}/{database}' \
         .format(user=postgresql_url_dict['user'],
                 host=postgresql_url_dict['host'],
                 port=postgresql_url_dict['port'],
@@ -425,27 +423,28 @@ class TestmyADSCelery(unittest.TestCase):
         split_payload = formatted_payload.split('\n')
         self.assertEquals(split_payload[0].strip(), 'Query 1 (https://path/to/query)')
         self.assertEquals(split_payload[1].strip(), '2012yCat..51392620N: Nantais, J,+: VizieR Online Data Catalog: ' +
-                          'Spectroscopy of M81 globular clusters (Nantais+, 2010)')
+                          'Spectroscopy of M81 globular clusters')
 
     def test_payload_to_html(self):
 
         formatted_payload = utils.payload_to_html(payload, col=1)
 
         split_payload = formatted_payload.split('\n')
-        self.assertIn('class="columnContent"', split_payload[3])
-        self.assertEquals(split_payload[4].strip(),
-                          '<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
-                          'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn('href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[5])
+        self.assertIn(u'templateColumnContainer"', split_payload[57])
+        self.assertEquals(split_payload[62].strip(),
+                          u'<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
+                          u'font-weight: bold;">Query 1</a></h3>')
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
         split_payload = formatted_payload.split('\n')
-        self.assertIn('class="leftColumnContent"', split_payload[3])
-        self.assertEquals(split_payload[4].strip(),
-                          '<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
-                          'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn('href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[5])
+
+        self.assertIn(u'class="leftColumnContent"', split_payload[60])
+        self.assertEquals(split_payload[62].strip(),
+                          u'<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
+                          u'font-weight: bold;">Query 1</a></h3>')
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)

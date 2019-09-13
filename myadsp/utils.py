@@ -7,10 +7,17 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import urllib
 import json
+from jinja2 import Environment, PackageLoader, select_autoescape
 
 logger = setup_logging('myads_utils')
 config = {}
 config.update(load_config())
+
+env = Environment(
+    loader=PackageLoader('myadsp', 'templates'),
+    autoescape=select_autoescape(enabled_extensions=('html', 'xml'),
+                                 default_for_string=True)
+)
 
 
 def send_email(email_addr='', email_template=Email, payload_plain=None, payload_html=None, subject=None):
@@ -182,7 +189,7 @@ def get_template_query_results(myADSsetup=None):
     return payload
 
 
-def _get_first_author_formatted(result_dict, author_field='author_norm'):
+def _get_first_author_formatted(result_dict=None, author_field='author_norm'):
     """
     Get the first author, format it correctly
     :param result_dict: dict containing the results from solr for a single bibcode, including the author list
@@ -207,6 +214,21 @@ def _get_first_author_formatted(result_dict, author_field='author_norm'):
     return first_author
 
 
+def _get_title(result_dict=None):
+    """
+    Get the title
+    :param result_dict:
+    :return: formatted title
+    """
+
+    if type(result_dict.get('title', '')) == list:
+        title = result_dict.get('title')[0]
+    else:
+        title = result_dict.get('title', '')
+
+    return title
+
+
 def payload_to_plain(payload=None):
     """
     Converts the myADS results into the plain text message payload
@@ -227,74 +249,37 @@ def payload_to_plain(payload=None):
 
     return formatted
 
+env.globals['_get_first_author_formatted'] = _get_first_author_formatted
+env.globals['_get_title'] = _get_title
 
-def payload_to_html(payload=None, col=1):
+
+def payload_to_html(payload=None, col=1, frequency='daily'):
     """
     Converts the myADS results into the HTML formatted message payload
     :param payload: list of dicts
     :param col: number of columns to display in formatted email (1 or 2)
+    :param frequency: 'daily' or 'weekly' notification
     :return: HTML formatted payload
     """
-    start_col = '''<td align="center" valign="top" width="{0}" class="templateColumnContainer">\n''' + \
-                '''    <table border="0" cellpadding="10" cellspacing="0" width="100%">\n'''
-    end_col = '''</table>\n</td>\n'''
-    head = '<h3><a href="{0}" style="color: #1C459B; font-style: italic;font-weight: bold;">{1}</a></h3>'
-    item = '<a href="{0}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{1}</a> {2} {3}<br>'
+
+    date_formatted = get_date().strftime("%B %d, %Y")
 
     if col == 1:
-        formatted = start_col.format('100%')
-        for p in payload:
-            formatted += '''<tr>\n    <td valign="top" class="columnContent">\n    '''
-            formatted += head.format(p['query_url'], p['name'])
-            formatted += '\n    '
-            for r in p['results']:
-                bibc_url = config.get('ABSTRACT_UI_ENDPOINT') % r['bibcode']
-                first_author = _get_first_author_formatted(r)
-                if type(r.get('title', '')) == list:
-                    title = r.get('title')[0]
-                else:
-                    title = r.get('title', '')
-                formatted += item.format(bibc_url, r['bibcode'], first_author, title)
-                formatted += '\n'
-            formatted += '''</td>\n</tr>\n'''
-        formatted += end_col
-        return formatted
+        template = env.get_template('one_col.html')
+        return template.render(frequency=frequency,
+                               date=date_formatted,
+                               payload=payload,
+                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'))
 
     elif col == 2:
         left_col = payload[:len(payload) // 2]
         right_col = payload[len(payload) // 2:]
-        formatted = start_col.format('50%')
-        for p in left_col:
-            formatted += '''<tr>\n    <td valign="top" class="leftColumnContent">\n    '''
-            formatted += head.format(p['query_url'], p['name'])
-            formatted += '\n    '
-            for r in p['results']:
-                bibc_url = config.get('ABSTRACT_UI_ENDPOINT') % r['bibcode']
-                first_author = _get_first_author_formatted(r)
-                if type(r.get('title', '')) == list:
-                    title = r.get('title')[0]
-                else:
-                    title = r.get('title', '')
-                formatted += item.format(bibc_url, r['bibcode'], first_author, title)
-                formatted += '\n'
-            formatted += '''</td>\n</tr>\n'''
-        formatted += end_col
-        for p in right_col:
-            formatted += '''<tr>\n    <td valign="top" class="rightColumnContent">\n    '''
-            formatted += head.format(p['query_url'], p['name'])
-            formatted += '\n    '
-            for r in p['results']:
-                bibc_url = config.get('ABSTRACT_UI_ENDPOINT') % r['bibcode']
-                first_author = _get_first_author_formatted(r)
-                if type(r.get('title', '')) == list:
-                    title = r.get('title')[0]
-                else:
-                    title = r.get('title', '')
-                formatted += item.format(bibc_url, r['bibcode'], first_author, title)
-                formatted += '\n'
-            formatted += '''</td>\n</tr>\n'''
-        formatted += end_col
-        return formatted
+        template = env.get_template('two_col.html')
+        return template.render(frequency=frequency,
+                               date=date_formatted,
+                               left_payload=left_col,
+                               right_payload=right_col,
+                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'))
 
     else:
         logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.

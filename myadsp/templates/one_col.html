@@ -1,0 +1,21 @@
+{% extends "email.html" %}
+{% block payload %}
+<table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateColumns" style="background-color: #FFFFFF; border-top: 1px solid #FFFFFF;border-bottom: 1px solid #CCCCCC; border: 1px solid #BBBBBB;border-collapse: collapse !important;">
+    <tr>
+        <td align="center" valign="top" width="100%" class="templateColumnContainer">
+            <table border="0" cellpadding="10" cellspacing="0" width="100%">
+                <tr>
+                    <td valign="top" class="templateColumnContainer">
+                        {% for p in payload %}
+                            <h3><a href="{{ p.query_url }}" style="color: #1C459B; font-style: italic;font-weight: bold;">{{ p.name }}</a></h3>
+                            {% for r in p.results %}
+                                <a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.bibcode }}</a> {{ _get_first_author_formatted(r) }} {{ _get_title(r) }}<br>
+                            {% endfor %}
+                        {% endfor %}
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+{% endblock payload %}
