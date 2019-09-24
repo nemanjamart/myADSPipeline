@@ -136,24 +136,24 @@ def get_template_query_results(myADSsetup=None):
     else:
         name = []
     if myADSsetup['template'] == 'arxiv':
-        if type(myADSsetup['data']['classes']) != list:
-            tmp = [myADSsetup['data']['classes']]
+        if type(myADSsetup['classes']) != list:
+            tmp = [myADSsetup['classes']]
         else:
-            tmp = myADSsetup['data']['classes']
+            tmp = myADSsetup['classes']
         classes = ' OR '.join(['arxiv_class:' + x for x in tmp])
-        keywords = myADSsetup['data']['data']
+        keywords = myADSsetup['data']
         q.append('bibstem:arxiv (({0}) OR ({1})) entdate:["NOW-2DAYS" TO NOW]'.format(classes, keywords))
         sort.append('score desc')
     elif myADSsetup['template'] == 'citations':
-        keywords = myADSsetup['data']['data']
+        keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))
         sort.append('date desc')
     elif myADSsetup['template'] == 'authors':
-        keywords = myADSsetup['data']['data']
+        keywords = myADSsetup['data']
         q.append('{0}'.format(keywords))
         sort.append('score desc')
     elif myADSsetup['template'] == 'keyword':
-        keywords = myADSsetup['data']['data']
+        keywords = myADSsetup['data']
         # most recent
         q.append('{0}'.format(keywords))
         sort.append('entdate desc')

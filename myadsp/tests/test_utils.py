@@ -150,7 +150,8 @@ class TestmyADSCelery(unittest.TestCase):
                       'frequency': 'weekly',
                       'type': 'template',
                       'template': 'arxiv',
-                      'data': {'data': 'AGN', 'classes': 'astro-ph'},
+                      'data': 'AGN',
+                      'classes': ['astro-ph'],
                       'fields': 'bibcode,title,author_norm',
                       'rows': 2000}
 
@@ -195,7 +196,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'frequency': 'weekly',
                       'type': 'template',
                       'template': 'citations',
-                      'data': {'data': 'author:Kurtz'},
+                      'data': 'author:Kurtz',
                       'fields': 'bibcode,title,author_norm',
                       'rows': 5}
 
@@ -244,7 +245,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'frequency': 'weekly',
                       'type': 'template',
                       'template': 'authors',
-                      'data': {'data': 'author:Kurtz'},
+                      'data': 'author:Kurtz',
                       'fields': 'bibcode,title,author_norm',
                       'rows': 5}
 
@@ -293,7 +294,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'frequency': 'weekly',
                       'type': 'template',
                       'template': 'keyword',
-                      'data': {'data': 'AGN'},
+                      'data': 'AGN',
                       'fields': 'bibcode,title,author_norm',
                       'rows': 5}
 
