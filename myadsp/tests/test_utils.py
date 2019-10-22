@@ -279,7 +279,7 @@ class TestmyADSCelery(unittest.TestCase):
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
-                         format(urllib.quote_plus('author:Kurtz'),
+                         format(urllib.quote_plus('author:Kurtz entdate:["NOW-25DAYS" TO NOW]'),
                                 urllib.quote_plus("score desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
@@ -376,14 +376,14 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        self.assertEqual(results, [{'name': 'AGN - Recent Papers',
+        self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
                                     'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
-                         format(urllib.quote_plus('AGN'),
+                         format(urllib.quote_plus('AGN entdate:["NOW-25DAYS" TO NOW]'),
                                 urllib.quote_plus("entdate desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]},
-                                   {'name': 'AGN - Most Popular',
+                                   {'name': 'Test Query - keywords - Most Popular',
                                     'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
                          format(urllib.quote_plus('trending(AGN)'),
                                 urllib.quote_plus("score desc")),
@@ -391,7 +391,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]},
-                                   {'name': 'AGN - Most Cited',
+                                   {'name': 'Test Query - keywords - Most Cited',
                                     'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
                          format(urllib.quote_plus('useful(AGN)'),
                                 urllib.quote_plus("score desc")),

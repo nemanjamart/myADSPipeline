@@ -150,22 +150,23 @@ def get_template_query_results(myADSsetup=None):
         sort.append('date desc')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
-        q.append('{0}'.format(keywords))
+        q.append('{0} entdate:["NOW-25DAYS" TO NOW]'.format(keywords))
         sort.append('score desc')
     elif myADSsetup['template'] == 'keyword':
         keywords = myADSsetup['data']
+        raw_name = myADSsetup['name']
         # most recent
-        q.append('{0}'.format(keywords))
+        q.append('{0} entdate:["NOW-25DAYS" TO NOW]'.format(keywords))
         sort.append('entdate desc')
-        name.append('{0} - Recent Papers'.format(keywords))
+        name.append('{0} - Recent Papers'.format(raw_name))
         # most popular
         q.append('trending({0})'.format(keywords))
         sort.append('score desc')
-        name.append('{0} - Most Popular'.format(keywords))
+        name.append('{0} - Most Popular'.format(raw_name))
         # most cited
         q.append('useful({0})'.format(keywords))
         sort.append('score desc')
-        name.append('{0} - Most Cited'.format(keywords))
+        name.append('{0} - Most Cited'.format(raw_name))
 
     payload = []
     for i in range(len(q)):
