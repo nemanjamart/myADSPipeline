@@ -8,6 +8,7 @@ from email.mime.multipart import MIMEMultipart
 import urllib
 import json
 from jinja2 import Environment, PackageLoader, select_autoescape
+import datetime
 
 logger = setup_logging('myads_utils')
 config = {}
@@ -131,6 +132,7 @@ def get_template_query_results(myADSsetup=None):
     """
     q = []
     sort = []
+    beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
     if myADSsetup['template'] in ['arxiv', 'citations', 'authors']:
         name = [myADSsetup['name']]
     else:
@@ -142,7 +144,8 @@ def get_template_query_results(myADSsetup=None):
             tmp = myADSsetup['classes']
         classes = ' OR '.join(['arxiv_class:' + x for x in tmp])
         keywords = myADSsetup['data']
-        q.append('bibstem:arxiv (({0}) OR ({1})) entdate:["NOW-2DAYS" TO NOW]'.format(classes, keywords))
+        q.append('bibstem:arxiv (({0}) OR ({1})) entdate:["NOW-2DAYS" TO NOW] pubdate:[{2}-00 TO *]'.
+                 format(classes, keywords, beg_pubyear))
         sort.append('score desc')
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
@@ -150,13 +153,13 @@ def get_template_query_results(myADSsetup=None):
         sort.append('date desc')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
-        q.append('{0} entdate:["NOW-25DAYS" TO NOW]'.format(keywords))
+        q.append('{0} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear))
         sort.append('score desc')
     elif myADSsetup['template'] == 'keyword':
         keywords = myADSsetup['data']
         raw_name = myADSsetup['name']
         # most recent
-        q.append('{0} entdate:["NOW-25DAYS" TO NOW]'.format(keywords))
+        q.append('{0} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear))
         sort.append('entdate desc')
         name.append('{0} - Recent Papers'.format(raw_name))
         # most popular
