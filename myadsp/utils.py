@@ -142,7 +142,7 @@ def get_template_query_results(myADSsetup=None):
             tmp = [myADSsetup['classes']]
         else:
             tmp = myADSsetup['classes']
-        classes = ' OR '.join(['arxiv_class:' + x for x in tmp])
+        classes = ' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in tmp])
         keywords = myADSsetup['data']
         q.append('bibstem:arxiv (({0}) OR ({1})) entdate:["NOW-2DAYS" TO NOW] pubdate:[{2}-00 TO *]'.
                  format(classes, keywords, beg_pubyear))
@@ -160,7 +160,7 @@ def get_template_query_results(myADSsetup=None):
         raw_name = myADSsetup['name']
         # most recent
         q.append('{0} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear))
-        sort.append('entdate desc')
+        sort.append('entry_date desc')
         name.append('{0} - Recent Papers'.format(raw_name))
         # most popular
         q.append('trending({0})'.format(keywords))
