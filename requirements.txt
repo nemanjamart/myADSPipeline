@@ -2,3 +2,4 @@ git+https://github.com/adsabs/ADSPipelineUtils.git@v1.0.12
 alembic==0.9.1
 psycopg2==2.8.3
 Jinja2==2.10.1
+requests==2.19.1
