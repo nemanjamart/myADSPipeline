@@ -184,8 +184,8 @@ class TestmyADSCelery(unittest.TestCase):
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
-                         format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) '
-                                                  'entdate:["NOW-2DAYS" TO NOW] pubdate:[2019-00 TO *]'),
+                         format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
+                                                  'entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("score desc")),
                                    'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
