@@ -144,8 +144,14 @@ def get_template_query_results(myADSsetup=None):
             tmp = myADSsetup['classes']
         classes = ' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in tmp])
         keywords = myADSsetup['data']
-        q.append('bibstem:arxiv (({0}) OR ({1})) entdate:["NOW-2DAYS" TO NOW] pubdate:[{2}-00 TO *]'.
-                 format(classes, keywords, beg_pubyear))
+        if myADSsetup['frequency'] == 'daily':
+            connector = ' OR '
+            start = 'NOW-2DAYS'
+        elif myADSsetup['frequency'] == 'weekly':
+            connector = ' '
+            start = 'NOW-25DAYS'
+        q.append('bibstem:arxiv (({0}){3}({1})) entdate:["{4}" TO NOW] pubdate:[{2}-00 TO *]'.
+                 format(classes, keywords, beg_pubyear, connector, start))
         sort.append('score desc')
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
