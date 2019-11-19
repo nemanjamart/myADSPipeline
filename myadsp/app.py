@@ -4,6 +4,7 @@ from .models import AuthorInfo, Results
 import requests
 from datetime import timedelta
 from sqlalchemy.sql.expression import and_
+from sqlalchemy.orm import exc as ormexc
 
 
 class myADSCelery(ADSCelery):
@@ -30,10 +31,13 @@ class myADSCelery(ADSCelery):
         else:
             new_users = r.json()['users']
             for n in new_users:
-                author = AuthorInfo(id=n, created=get_date(), last_sent=None)
-                with self.session_scope() as session:
-                    session.add(author)
-                    session.commit()
+                try:
+                    q = session.query(AuthorInfo).filter_by(id=n).one()
+                except ormexc.NoResultFound:
+                    author = AuthorInfo(id=n, created=get_date(), last_sent=None)
+                    with self.session_scope() as session:
+                        session.add(author)
+                        session.commit()
                 user_ids.add(n)
 
         return list(user_ids)

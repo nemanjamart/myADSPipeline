@@ -113,7 +113,7 @@ if __name__ == '__main__':
     if args.user_ids:
         args.user_ids = [x.strip() for x in args.user_ids.split(',')]
 
-    if args.daily_updates:
+    if args.daily_update:
         process_myads(args.since_date, args.user_ids, frequency='daily')
-    if args.weekly_updates:
+    if args.weekly_update:
         process_myads(args.since_date, args.user_ids, frequency='weekly')

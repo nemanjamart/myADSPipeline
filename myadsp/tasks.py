@@ -10,6 +10,7 @@ from kombu import Queue
 import requests
 import os
 import json
+from sqlalchemy.orm import exc as ormexc
 
 app = app_module.myADSCelery('myADS-pipeline', proj_home=os.path.realpath(os.path.join(os.path.dirname(__file__), '../')))
 app.conf.CELERY_QUEUES = (
@@ -42,8 +43,16 @@ def task_process_myads(message):
 
     userid = message['userid']
     with app.session_scope() as session:
-        q = session.query(AuthorInfo).filter_by(id=userid).one()
-        if q.last_sent and q.last_sent.date() == adsputils.get_date().date():
+        try:
+            q = session.query(AuthorInfo).filter_by(id=userid).one()
+            last_sent = q.last_sent
+        except ormexc.NoResultFound:
+            author = AuthorInfo(id=userid, created=adsputils.get_date(), last_sent=None)
+            session.add(author)
+            session.flush()
+            last_sent = author.last_sent
+            session.commit()
+        if last_sent and last_sent.date() == adsputils.get_date().date():
             # already sent email today
             if not message['force']:
                 logger.warning('Email for user {0} already sent today'.format(userid))

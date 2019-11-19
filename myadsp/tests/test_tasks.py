@@ -64,12 +64,7 @@ class TestmyADSCelery(unittest.TestCase):
             tasks.task_process_myads(msg)
             logger.assert_called_with(u"No frequency received for {0}".format(msg))
 
-        # add user for processing, this normally happens in run.py if necessary
-        user = AuthorInfo(id=123, created=adsputils.get_date())
-        with self.app.session_scope() as session:
-            session.add(user)
-            session.commit()
-
+        # process a user (the user should get created during the task)
         msg = {'userid': 123, 'frequency': 'daily'}
 
         httpretty.register_uri(
