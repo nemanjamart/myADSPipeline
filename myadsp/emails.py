@@ -6,7 +6,7 @@ class Email(object):
     """
     msg_plain = ''
     msg_html = ''
-    subject = ''
+    subject = u''
     salt = ''
 
 
@@ -21,4 +21,4 @@ class myADSTemplate(Email):
         {payload}
         """
     msg_html = """{payload}"""
-    subject = 'myADS Notification'
+    subject = u'myADS Notification'

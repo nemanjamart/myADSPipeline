@@ -70,7 +70,7 @@ class TestmyADSCelery(unittest.TestCase):
         email_addr = 'to@test.com'
         payload_plain = 'plain test'
         payload_html = '<em>html test</em>'
-        with patch('smtplib.SMTP_SSL') as mock_smtp:
+        with patch('smtplib.SMTP') as mock_smtp:
             msg = utils.send_email(email_addr,
                                    email_template=myADSTemplate,
                                    payload_plain=payload_plain,
@@ -183,7 +183,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
-                                   'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                                   'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
                                                   'entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("score desc")),
@@ -232,7 +232,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
-                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('citations(author:Kurtz)'),
                                 urllib.quote_plus("date desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
@@ -281,7 +281,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
-                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('author:Kurtz entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("score desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
@@ -380,14 +380,14 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
-                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('AGN entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("entry_date desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]},
                                    {'name': 'Test Query - keywords - Most Popular',
-                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('trending(AGN)'),
                                 urllib.quote_plus("score desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
@@ -395,7 +395,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]},
                                    {'name': 'Test Query - keywords - Most Cited',
-                                    'query_url': 'https://api.adsabs.harvard.edu/v1/search/query/?q={0}&sort={1}'.
+                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('useful(AGN)'),
                                 urllib.quote_plus("score desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",

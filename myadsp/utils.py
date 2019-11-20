@@ -48,21 +48,22 @@ def send_email(email_addr='', email_template=Email, payload_plain=None, payload_
     msg["Subject"] = subject
     msg["From"] = config.get('MAIL_DEFAULT_SENDER')
     msg["To"] = email_addr
-    plain = MIMEText(email_template.msg_plain.format(payload=payload_plain), "plain")
-    html = MIMEText(email_template.msg_html.format(payload=payload_html, email_address=email_addr), "html")
+    plain = MIMEText(email_template.msg_plain.format(payload=payload_plain.encode('ascii', 'ignore')), "plain")
+    html = MIMEText(email_template.msg_html.format(payload=payload_html.encode('ascii', 'ignore'), email_address=email_addr), "html")
     msg.attach(plain)
     msg.attach(html)
 
     try:
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(config.get('MAIL_SERVER'), config.get('MAIL_PORT'), context=context) as server:
-            server.login(config.get('MAIL_USERNAME'),
-                         config.get('MAIL_PASSWORD'))
-            server.sendmail(config.get('MAIL_DEFAULT_SENDER'),
-                            email_addr,
-                            msg.as_string())
-    except:
-        logger.error('Error sending email to {0} with payload: {1}'.format(email_addr, plain))
+        server = smtplib.SMTP(config.get('MAIL_SERVER'), config.get('MAIL_PORT'))
+        server.starttls()
+        server.login(config.get('MAIL_USERNAME'),
+                     config.get('MAIL_PASSWORD'))
+        server.sendmail(config.get('MAIL_DEFAULT_SENDER'),
+                        email_addr,
+                        msg.as_string())
+        server.quit()
+    except Exception  as e:
+        logger.error('Error sending email to {0} with payload: {1} with error {2}'.format(email_addr, plain, e))
         return None
 
     logger.info('Email sent to {0} with payload: {1}'.format(email_addr, plain))
@@ -79,7 +80,10 @@ def get_user_email(userid=None):
     """
 
     if userid:
-        r = requests.get(config.get('API_ADSWS_USER_EMAIL') % userid)
+        r = requests.get(config.get('API_ADSWS_USER_EMAIL') % userid,
+                         headers={'Accept': 'application/json',
+                                  'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))}
+                         )
         if r.status_code == 200:
             return r.json()['email']
         else:
@@ -194,7 +198,8 @@ def get_template_query_results(myADSsetup=None):
             docs = []
         else:
             docs = json.loads(r.text)['response']['docs']
-        payload.append({'name': name[i], 'query_url': query, 'results': docs})
+        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
+        payload.append({'name': name[i], 'query_url': query_url, 'results': docs})
 
     return payload
 
@@ -245,17 +250,17 @@ def payload_to_plain(payload=None):
     :param payload: list of dicts
     :return: plain text formatted payload
     """
-    formatted = ''
+    formatted = u''
     for p in payload:
-        formatted += "{0} ({1}) \n".format(p['name'], p['query_url'])
+        formatted += u"{0} ({1}) \n".format(p['name'], p['query_url'])
         for r in p['results']:
             first_author = _get_first_author_formatted(r)
             if type(r.get('title', '')) == list:
                 title = r.get('title')[0]
             else:
                 title = r.get('title', '')
-            formatted += "{0}: {1} {2}\n".format(r['bibcode'], first_author, title)
-        formatted += "\n"
+            formatted += u"{0}: {1} {2}\n".format(r['bibcode'], first_author, title)
+        formatted += u"\n"
 
     return formatted
 
