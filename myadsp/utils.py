@@ -156,29 +156,29 @@ def get_template_query_results(myADSsetup=None):
             start = 'NOW-25DAYS'
         q.append('bibstem:arxiv (({0}){3}({1})) entdate:["{4}" TO NOW] pubdate:[{2}-00 TO *]'.
                  format(classes, keywords, beg_pubyear, connector, start))
-        sort.append('score desc')
+        sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))
-        sort.append('date desc')
+        sort.append('date desc, bibcode desc')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
         q.append('{0} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear))
-        sort.append('score desc')
+        sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'keyword':
         keywords = myADSsetup['data']
         raw_name = myADSsetup['name']
         # most recent
         q.append('{0} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear))
-        sort.append('entry_date desc')
+        sort.append('entry_date desc, bibcode desc')
         name.append('{0} - Recent Papers'.format(raw_name))
         # most popular
         q.append('trending({0})'.format(keywords))
-        sort.append('score desc')
+        sort.append('score desc, bibcode desc')
         name.append('{0} - Most Popular'.format(raw_name))
         # most cited
         q.append('useful({0})'.format(keywords))
-        sort.append('score desc')
+        sort.append('score desc, bibcode desc')
         name.append('{0} - Most Cited'.format(raw_name))
 
     payload = []

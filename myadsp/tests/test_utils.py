@@ -186,7 +186,7 @@ class TestmyADSCelery(unittest.TestCase):
                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
                                                   'entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
-                                urllib.quote_plus("score desc")),
+                                urllib.quote_plus("score desc, bibcode desc")),
                                    'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]}])
@@ -208,7 +208,7 @@ class TestmyADSCelery(unittest.TestCase):
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus(
                            'citations(author:Kurtz)'),
-                       sort=urllib.quote_plus('date desc'),
+                       sort=urllib.quote_plus('date desc, bibcode desc'),
                        fields='bibcode,title,author_norm',
                        rows=5),
             content_type='application/json',
@@ -219,7 +219,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "q": "citations(author:Kurtz)",
                                                     "fl": "bibcode,title,author_norm",
                                                     "start": "0",
-                                                    "sort": "date desc",
+                                                    "sort": "date desc, bibcode desc",
                                                     "rows": "5",
                                                     "wt": "json"}},
                              "response": {"numFound": 1,
@@ -234,7 +234,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('citations(author:Kurtz)'),
-                                urllib.quote_plus("date desc")),
+                                urllib.quote_plus("date desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -257,7 +257,7 @@ class TestmyADSCelery(unittest.TestCase):
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus(
                            'author:Kurtz'),
-                       sort=urllib.quote_plus('score desc'),
+                       sort=urllib.quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm',
                        rows=5),
             content_type='application/json',
@@ -268,7 +268,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "q": "author:Kurtz",
                                                     "fl": "bibcode,title,author_norm",
                                                     "start": "0",
-                                                    "sort": "score desc",
+                                                    "sort": "score desc, bibcode desc",
                                                     "rows": "5",
                                                     "wt": "json"}},
                              "response": {"numFound": 1,
@@ -283,7 +283,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('author:Kurtz entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
-                                urllib.quote_plus("score desc")),
+                                urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -305,7 +305,7 @@ class TestmyADSCelery(unittest.TestCase):
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus('AGN'),
-                       sort=urllib.quote_plus('entry_date desc'),
+                       sort=urllib.quote_plus('entry_date desc, bibcode desc'),
                        fields='bibcode,title,author_norm',
                        rows=5),
             content_type='application/json',
@@ -316,7 +316,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "q": "AGN",
                                                     "fl": "bibcode,title,author_norm",
                                                     "start": "0",
-                                                    "sort": "entry_date desc",
+                                                    "sort": "entry_date desc, bibcode desc",
                                                     "rows": "5",
                                                     "wt": "json"}},
                              "response": {"numFound": 1,
@@ -330,7 +330,7 @@ class TestmyADSCelery(unittest.TestCase):
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus('trending(AGN)'),
-                       sort=urllib.quote_plus('score desc'),
+                       sort=urllib.quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm',
                        rows=5),
             content_type='application/json',
@@ -341,7 +341,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "q": "trending(AGN)",
                                                     "fl": "bibcode,title,author_norm",
                                                     "start": "0",
-                                                    "sort": "score desc",
+                                                    "sort": "score desc, bibcode desc",
                                                     "rows": "5",
                                                     "wt": "json"}},
                              "response": {"numFound": 1,
@@ -356,7 +356,7 @@ class TestmyADSCelery(unittest.TestCase):
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus('useful(AGN)'),
-                       sort=urllib.quote_plus('score desc'),
+                       sort=urllib.quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm',
                        rows=5),
             content_type='application/json',
@@ -367,7 +367,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "q": "useful(AGN)",
                                                     "fl": "bibcode,title,author_norm",
                                                     "start": "0",
-                                                    "sort": "score desc",
+                                                    "sort": "score desc, bibcode desc",
                                                     "rows": "5",
                                                     "wt": "json"}},
                              "response": {"numFound": 1,
@@ -382,14 +382,14 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('AGN entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
-                                urllib.quote_plus("entry_date desc")),
+                                urllib.quote_plus("entry_date desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]},
                                    {'name': 'Test Query - keywords - Most Popular',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('trending(AGN)'),
-                                urllib.quote_plus("score desc")),
+                                urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -397,7 +397,7 @@ class TestmyADSCelery(unittest.TestCase):
                                    {'name': 'Test Query - keywords - Most Cited',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('useful(AGN)'),
-                                urllib.quote_plus("score desc")),
+                                urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
