@@ -163,21 +163,29 @@ def get_template_query_results(myADSsetup=None):
         sort.append('date desc, bibcode desc')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
-        q.append('{0} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear))
+        if myADSsetup.get('classes'):
+            classes = ' ({})'.format(' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in myADSsetup.get('classes')]))
+        else:
+            classes = ''
+        q.append('{0}{2} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear, classes))
         sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'keyword':
         keywords = myADSsetup['data']
         raw_name = myADSsetup['name']
+        if myADSsetup.get('classes'):
+            classes = ' ({})'.format(' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in myADSsetup.get('classes')]))
+        else:
+            classes = ''
         # most recent
-        q.append('{0} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear))
+        q.append('{0}{2} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear, classes))
         sort.append('entry_date desc, bibcode desc')
         name.append('{0} - Recent Papers'.format(raw_name))
         # most popular
-        q.append('trending({0})'.format(keywords))
+        q.append('trending({0}{1})'.format(keywords, classes))
         sort.append('score desc, bibcode desc')
         name.append('{0} - Most Popular'.format(raw_name))
         # most cited
-        q.append('useful({0})'.format(keywords))
+        q.append('useful({0}{1})'.format(keywords, classes))
         sort.append('score desc, bibcode desc')
         name.append('{0} - Most Cited'.format(raw_name))
 
