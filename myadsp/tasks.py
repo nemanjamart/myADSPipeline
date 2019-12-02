@@ -117,9 +117,9 @@ def task_process_myads(message):
 
     payload_plain = utils.payload_to_plain(payload)
     if len(payload) <= 3:
-        payload_html = utils.payload_to_html(payload, col=1)
+        payload_html = utils.payload_to_html(payload, col=1, frequency=message['frequency'])
     else:
-        payload_html = utils.payload_to_html(payload, col=2)
+        payload_html = utils.payload_to_html(payload, col=2, frequency=message['frequency'])
     msg = utils.send_email(email_addr=email,
                            email_template=myADSTemplate,
                            payload_plain=payload_plain,
