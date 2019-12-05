@@ -21,7 +21,7 @@ class myADSCelery(ADSCelery):
             for q in session.query(AuthorInfo).filter(AuthorInfo.last_sent < get_date()).all():
                 user_ids.add(q.id)
 
-        r = requests.get(self._config.get('API_VAULT_MYADS_USERS') % since.isoformat(),
+        r = requests.get(self._config.get('API_VAULT_MYADS_USERS') % get_date(since).isoformat(),
                          headers={'Accept': 'application/json',
                                   'Authorization': 'Bearer {0}'.format(self._config.get('API_TOKEN'))}
                          )
