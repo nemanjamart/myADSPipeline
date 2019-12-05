@@ -183,11 +183,13 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
-                                   'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
+                                    'query': 'bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
+                                             'entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]',
+                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
                                                   'entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("score desc, bibcode desc")),
-                                   'results': [{u"bibcode": u"1971JVST....8..324K",
+                                    'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]}])
 
@@ -232,9 +234,10 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
+                                    'query': 'citations(author:Kurtz)',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('citations(author:Kurtz)'),
-                                urllib.quote_plus("date desc, bibcode desc")),
+                                urllib.quote_plus("entry_date desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -281,6 +284,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
+                                    'query': 'database:astronomy author:Kurtz entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('database:astronomy author:Kurtz entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("score desc, bibcode desc")),
@@ -381,6 +385,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
+                                    'query': 'AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("entry_date desc, bibcode desc")),
@@ -388,6 +393,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]},
                                    {'name': 'Test Query - keywords - Most Popular',
+                                    'query': 'trending(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('trending(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))'),
                                 urllib.quote_plus("score desc, bibcode desc")),
@@ -396,6 +402,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"]}]},
                                    {'name': 'Test Query - keywords - Most Cited',
+                                    'query': 'useful(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('useful(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))'),
                                 urllib.quote_plus("score desc, bibcode desc")),
@@ -431,12 +438,12 @@ class TestmyADSCelery(unittest.TestCase):
 
     def test_payload_to_html(self):
 
-        formatted_payload = utils.payload_to_html(payload, col=1)
+        formatted_payload = utils.payload_to_html(payload, col=1, email_address="test@tester.com")
 
         split_payload = formatted_payload.split('\n')
         self.assertIn(u'templateColumnContainer"', split_payload[57])
         self.assertEquals(split_payload[62].strip(),
-                          u'<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
+                          u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
         self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
 
@@ -446,7 +453,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         self.assertIn(u'class="leftColumnContent"', split_payload[60])
         self.assertEquals(split_payload[62].strip(),
-                          u'<h3><a href="https://path/to/query" style="color: #1C459B; font-style: italic;' +
+                          u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
         self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
 

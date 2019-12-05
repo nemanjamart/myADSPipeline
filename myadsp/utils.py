@@ -160,7 +160,7 @@ def get_template_query_results(myADSsetup=None):
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))
-        sort.append('date desc, bibcode desc')
+        sort.append('entry_date desc, bibcode desc')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
         if myADSsetup.get('classes'):
@@ -207,7 +207,7 @@ def get_template_query_results(myADSsetup=None):
         else:
             docs = json.loads(r.text)['response']['docs']
         query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
-        payload.append({'name': name[i], 'query_url': query_url, 'results': docs})
+        payload.append({'name': name[i], 'query_url': query_url, 'query': q[i], 'results': docs})
 
     return payload
 
@@ -276,12 +276,13 @@ env.globals['_get_first_author_formatted'] = _get_first_author_formatted
 env.globals['_get_title'] = _get_title
 
 
-def payload_to_html(payload=None, col=1, frequency='daily'):
+def payload_to_html(payload=None, col=1, frequency='daily', email_address=None):
     """
     Converts the myADS results into the HTML formatted message payload
     :param payload: list of dicts
     :param col: number of columns to display in formatted email (1 or 2)
     :param frequency: 'daily' or 'weekly' notification
+    :param email_address: email address of user, for footer
     :return: HTML formatted payload
     """
 
@@ -292,7 +293,8 @@ def payload_to_html(payload=None, col=1, frequency='daily'):
         return template.render(frequency=frequency,
                                date=date_formatted,
                                payload=payload,
-                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'))
+                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'),
+                               email_address=email_address)
 
     elif col == 2:
         left_col = payload[:len(payload) // 2]
@@ -302,7 +304,8 @@ def payload_to_html(payload=None, col=1, frequency='daily'):
                                date=date_formatted,
                                left_payload=left_col,
                                right_payload=right_col,
-                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'))
+                               abs_url=config.get('ABSTRACT_UI_ENDPOINT'),
+                               email_address=email_address)
 
     else:
         logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.

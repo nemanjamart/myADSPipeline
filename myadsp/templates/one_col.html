@@ -7,7 +7,7 @@
                 <tr>
                     <td valign="top" class="templateColumnContainer">
                         {% for p in payload %}
-                            <h3><a href="{{ p.query_url }}" style="color: #1C459B; font-style: italic;font-weight: bold;">{{ p.name }}</a></h3>
+                            <h3><a href="{{ p.query_url }}" title="{{ p.query }}" style="color: #1C459B; font-style: italic;font-weight: bold;">{{ p.name }}</a></h3>
                             {% for r in p.results %}
                                 <a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.bibcode }}</a> {{ _get_first_author_formatted(r) }} {{ _get_title(r) }}<br>
                             {% endfor %}
