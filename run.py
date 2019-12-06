@@ -16,18 +16,19 @@ app = tasks.app
 logger = setup_logging('run.py')
 
 
-def process_myads(since=None, user_ids=None, frequency='daily', **kwargs):
+def process_myads(since=None, user_ids=None, test_send_to=None, frequency='daily', **kwargs):
     """
     Processes myADS mailings
 
     :param since: check for new myADS users since this date
     :param user_ids: users to process claims for, else all users - list
+    :param test_send_to: for testing; process a given user ID but send the output to this email address
     :param frequency: basestring; 'daily' or 'weekly'
     :return: no return
     """
     if user_ids:
         for u in user_ids:
-            tasks.task_process_myads({'userid': u, 'frequency': frequency, 'force': True})
+            tasks.task_process_myads({'userid': u, 'frequency': frequency, 'force': True, 'test_send_to': test_send_to})
             logger.info('Done (just the supplied user IDs)')
             return
 
@@ -108,12 +109,19 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Process weekly myADS notifications')
 
+    parser.add_argument('-t',
+                        '--test_send_to',
+                        dest='test_send_to',
+                        action='store',
+                        default=None,
+                        help='For testing; process a given user ID but send output to this email address')
+
     args = parser.parse_args()
 
     if args.user_ids:
         args.user_ids = [x.strip() for x in args.user_ids.split(',')]
 
     if args.daily_update:
-        process_myads(args.since_date, args.user_ids, frequency='daily')
+        process_myads(args.since_date, args.user_ids, args.test_send_to, frequency='daily')
     if args.weekly_update:
-        process_myads(args.since_date, args.user_ids, frequency='weekly')
+        process_myads(args.since_date, args.user_ids, args.test_send_to, frequency='weekly')

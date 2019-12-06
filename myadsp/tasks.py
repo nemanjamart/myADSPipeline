@@ -30,6 +30,7 @@ def task_process_myads(message):
          'frequency': 'daily' or 'weekly',
          'force': Boolean (if present, we'll reprocess myADS notifications for the user,
             even if they were already processed today)
+         'test_send_to': email address to send output to, if not that of the user (for testing)
         }
     :return: no return
     """
@@ -109,7 +110,12 @@ def task_process_myads(message):
             # wrong frequency for this round of processing
             pass
 
-    email = utils.get_user_email(userid=userid)
+    # if test email address provided, send there; otherwise fetch user email address
+    if message.get('test_send_to', None):
+        email = message.get('test_send_to')
+    else:
+        email = utils.get_user_email(userid=userid)
+
     if message['frequency'] == 'daily':
         subject = 'Daily arXiv myADS Notification'
     else:
