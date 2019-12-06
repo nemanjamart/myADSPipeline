@@ -16,13 +16,15 @@ app = tasks.app
 logger = setup_logging('run.py')
 
 
-def process_myads(since=None, user_ids=None, test_send_to=None, frequency='daily', **kwargs):
+def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None, frequency='daily', **kwargs):
     """
     Processes myADS mailings
 
     :param since: check for new myADS users since this date
     :param user_ids: users to process claims for, else all users - list
     :param test_send_to: for testing; process a given user ID but send the output to this email address
+    :param admin_email: if provided, email is sent to this address at beginning and end of processing (does not trigger
+    for processing for individual users)
     :param frequency: basestring; 'daily' or 'weekly'
     :return: no return
     """
@@ -33,6 +35,12 @@ def process_myads(since=None, user_ids=None, test_send_to=None, frequency='daily
             return
 
     logging.captureWarnings(True)
+
+    if admin_email:
+        msg = utils.send_email(email_addr=admin_email,
+                               payload_plain='Processing started for {}'.format(get_date()),
+                               payload_html='Processing started for {}'.format(get_date()),
+                               subject='myADS {0} processing has started'.format(frequency))
 
     # if since keyword not provided, since is set to timestamp of last processing
     if not since or isinstance(since, basestring) and since.strip() == "":
@@ -79,6 +87,12 @@ def process_myads(since=None, user_ids=None, test_send_to=None, frequency='daily
     print 'Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users))
     logger.info('Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users)))
 
+    if admin_email:
+        msg = utils.send_email(email_addr=admin_email,
+                               payload_plain='Processing ended for {}'.format(get_date()),
+                               payload_html='Processing ended for {}'.format(get_date()),
+                               subject='myADS {0} processing has finished'.format(frequency))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process user input.')
@@ -116,12 +130,19 @@ if __name__ == '__main__':
                         default=None,
                         help='For testing; process a given user ID but send output to this email address')
 
+    parser.add_argument('-a',
+                        '--admin_email',
+                        dest='admin_email',
+                        action='store',
+                        default=None,
+                        help='Send email to this address at beginning and end of processing')
+
     args = parser.parse_args()
 
     if args.user_ids:
         args.user_ids = [x.strip() for x in args.user_ids.split(',')]
 
     if args.daily_update:
-        process_myads(args.since_date, args.user_ids, args.test_send_to, frequency='daily')
+        process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, frequency='daily')
     if args.weekly_update:
-        process_myads(args.since_date, args.user_ids, args.test_send_to, frequency='weekly')
+        process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, frequency='weekly')
