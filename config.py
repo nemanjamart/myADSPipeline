@@ -28,6 +28,13 @@ STATEFUL_RESULTS_DAYS = 7
 # Reschedule sending if there's an error (units=seconds)
 MYADS_RESEND_WINDOW = 60*10
 
+# Number of days back, from today, to check for new arXiv records
+ARXIV_TIMEDELTA_DAYS = 1
+
+# Directories for incoming arXiv submissions
+ARXIV_INCOMING_ABS_DIR = '/proj/ads/abstracts/sources/ArXiv'
+ARXIV_UPDATE_AGENT_DIR = ARXIV_INCOMING_ABS_DIR + '/UpdateAgent'
+
 MAIL_DEFAULT_SENDER = 'no-reply@adslabs.org'
 MAIL_PASSWORD = "fix-me"
 MAIL_PORT = 587
