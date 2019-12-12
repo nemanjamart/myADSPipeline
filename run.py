@@ -69,7 +69,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     total_delay = 0
     while total_delay < sleep_timeout:
         total_delay += sleep_delay
-        r = requests.get('{0}?q=bibcode:{1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_bibc),
+        r = requests.get('{0}?q=identifier:{1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_bibc),
                          headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         if r.status_code != 200:
             time.sleep(sleep_delay)
@@ -165,12 +165,6 @@ def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None
 
     print 'Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users))
     logger.info('Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users)))
-
-    if admin_email:
-        msg = utils.send_email(email_addr=admin_email,
-                               payload_plain='Processing ended for {}'.format(get_date()),
-                               payload_html='Processing ended for {}'.format(get_date()),
-                               subject='myADS {0} processing has finished'.format(frequency))
 
 
 if __name__ == '__main__':

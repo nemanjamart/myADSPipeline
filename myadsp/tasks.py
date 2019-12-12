@@ -31,6 +31,7 @@ def task_process_myads(message):
          'force': Boolean (if present, we'll reprocess myADS notifications for the user,
             even if they were already processed today)
          'test_send_to': email address to send output to, if not that of the user (for testing)
+         'retries': number of retries attempted
         }
     :return: no return
     """
@@ -67,9 +68,18 @@ def task_process_myads(message):
                               'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
 
     if r.status_code != 200:
-        task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
-        logger.warning('Failed getting myADS setup for {0}; will try again later'.format(userid))
-        return
+        if message.get('retries', None):
+            retries = message['retries']
+        else:
+            retries = 0
+        if retries < app.conf.get('TOTAL_RETRIES', 3):
+            message['retries'] = retries + 1
+            task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
+            logger.warning('Failed getting myADS setup for {0}; will try again later. Retry {1}'.format(userid, retries))
+            return
+        else:
+            logger.warning('Maximum number of retries attempted for {0}. myADS processing failed.'.format(userid))
+            return
 
     # then execute each qid /vault/execute-query/qid
     setup = r.json()

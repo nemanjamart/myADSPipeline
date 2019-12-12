@@ -27,6 +27,7 @@ STATEFUL_RESULTS_DAYS = 7
 
 # Reschedule sending if there's an error (units=seconds)
 MYADS_RESEND_WINDOW = 60*10
+TOTAL_RETRIES = 3
 
 # Number of days back, from today, to check for new arXiv records
 ARXIV_TIMEDELTA_DAYS = 1
