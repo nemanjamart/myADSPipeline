@@ -117,15 +117,17 @@ def get_query_results(myADSsetup=None):
         # bigquery
         if q_params.get('fq', None) == u'{!bitset}':
             query_url = config.get('BIGQUERY_ENDPOINT') % myADSsetup['qid']
+            query = 'bigquery'
         # regular query
         else:
             urlparams = {'q': q_params.get('q', None), 'sort': q_params.get('sort', 'bibcode+desc')}
             query_url = config.get('QUERY_ENDPOINT') % urllib.urlencode(urlparams)
+            query = q_params.get('q', None)
     else:
         # no parameters returned - should this url be something else?
         query_url = config.get('UI_ENDPOINT')
 
-    return [{'name': myADSsetup['name'], 'query_url': query_url, 'results': docs}]
+    return [{'name': myADSsetup['name'], 'query_url': query_url, 'results': docs, 'query': query}]
 
 
 def get_template_query_results(myADSsetup=None):

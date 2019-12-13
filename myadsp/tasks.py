@@ -115,7 +115,7 @@ def task_process_myads(message):
                 else:
                     results = r['results']
 
-                payload.append({'name': r['name'], 'query_url': r['query_url'], 'results': results})
+                payload.append({'name': r['name'], 'query_url': r['query_url'], 'results': results, 'query': r['query']})
         else:
             # wrong frequency for this round of processing
             pass

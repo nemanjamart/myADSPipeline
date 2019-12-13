@@ -137,7 +137,8 @@ class TestmyADSCelery(unittest.TestCase):
                                                       "sort": "score desc"}),
                                     'results': [{"bibcode": "1971JVST....8..324K",
                                                  "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                 "author_norm": ["Kurtz, J"]}]
+                                                 "author_norm": ["Kurtz, J"]}],
+                                    "query": "author:Kurtz"
                                     }])
 
     @httpretty.activate
