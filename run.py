@@ -38,17 +38,25 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     arxiv_file = config.get('ARXIV_UPDATE_AGENT_DIR') + '/UpdateAgent.out.' + date + '.gz'
 
     arxiv_records = []
-    tstamps = []
     with gzip.open(arxiv_file, 'r') as flist:
         for l in flist.readlines():
             # sample line: oai/arXiv.org/0706/2491 2018-06-13T01:00:29
             arxiv_records.append(l.split()[0])
-            tstamps.append(l.split()[1])
 
-    tstamps, arxiv_record = (list(t) for t in zip(*sorted(zip(tstamps, arxiv_records))))
+    arxiv_records.sort()
+
+    # get the highest numbered ID
+    is_new = False
+    while is_new is False:
+        last_record = arxiv_records.pop()
+        try:
+            test_new = float(last_record.split('/')[-2])
+            is_new = True
+        except ValueError:
+            continue
 
     # get the most recent record, convert to a filename
-    last_file = config.get('ARXIV_INCOMING_ABS_DIR') + '/' + arxiv_record.pop()
+    last_file = config.get('ARXIV_INCOMING_ABS_DIR') + '/' + last_record
 
     arxiv_parser = arxiv.ArxivParser()
     with open(last_file, 'rU') as fp:
