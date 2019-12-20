@@ -29,12 +29,17 @@ STATEFUL_RESULTS_DAYS = 7
 MYADS_RESEND_WINDOW = 60*10
 TOTAL_RETRIES = 3
 
-# Number of days back, from today, to check for new arXiv records
+# Number of days back, from today, to check for new records
 ARXIV_TIMEDELTA_DAYS = 1
+ASTRO_TIMEDELTA_DAYS = 3
 
 # Directories for incoming arXiv submissions
 ARXIV_INCOMING_ABS_DIR = '/proj/ads/abstracts/sources/ArXiv'
 ARXIV_UPDATE_AGENT_DIR = ARXIV_INCOMING_ABS_DIR + '/UpdateAgent'
+
+# Directory for incoming astronomy articles
+ASTRO_INCOMING_DIR = '/proj/ads/abstracts/ast/index/current/'
+ASTRO_SAMPLE_SIZE = 3
 
 MAIL_DEFAULT_SENDER = 'no-reply@adslabs.org'
 MAIL_PASSWORD = "fix-me"

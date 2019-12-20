@@ -3,15 +3,15 @@ from myadsp import tasks, utils
 from myadsp.models import KeyValue
 import pyingest.parsers.arxiv as arxiv
 
-import sys
+import os
 import time
 import argparse
 import logging
-import traceback
 import requests
 import warnings
 import datetime
 import gzip
+import random
 from requests.packages.urllib3 import exceptions
 warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
 
@@ -99,6 +99,91 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         return True
 
     logger.warning('arXiv ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
+
+    return False
+
+
+def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
+    """
+    Check if new astronomy records are in Solr; run before weekly processing
+    :param date: check to check against astronomy bibcode list last updated date
+    :param sleep_delay: number of seconds to sleep between retries
+    :param sleep_timeout: number of seconds to retry in total before timing out completely
+    :return: True or False
+    """
+
+    if not date:
+        date = (datetime.datetime.today() - datetime.timedelta(days=config.get('ASTRO_TIMEDELTA_DAYS')))
+    else:
+        date = get_date(date)
+
+    astro_file = config.get('ASTRO_INCOMING_DIR') + 'matches.input'
+
+    # check modified datestamp on file - should be recent (otherwise contains old data)
+    mod_date = datetime.datetime.fromtimestamp(os.path.getmtime(astro_file))
+
+    # if the file is old, sleep until the file is updated
+    if mod_date < date:
+        total_delay = 0
+        while total_delay < sleep_timeout:
+            total_delay += sleep_delay
+            time.sleep(sleep_delay)
+            mod_date = datetime.datetime.fromtimestamp(os.path.getmtime(astro_file))
+            if mod_date > date:
+                break
+        else:
+            # timeout reached before astronomy update completed
+            logger.warning('Astronomy update did not complete with the {0}s timeout limit. Exiting.'.format(sleep_timeout))
+
+            return False
+
+    # check that the astronomy records have made it into solr
+    astro_records = []
+    with open(astro_file, 'r') as flist:
+        for l in flist.readlines():
+            # sample line: 2019A&A...632A..94J     K58-37447
+            astro_records.append(l.split()[0])
+
+    # get several randomly selected bibcodes, in case one had ingest issues
+    sample = random.sample(astro_records, config.get('ASTRO_SAMPLE_SIZE'))
+
+    total_delay = 0
+    while total_delay < sleep_timeout:
+        num_sampled = 0
+        for s in sample:
+            num_sampled += 1
+            r = requests.get('{0}?q=identifier:{1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'), s),
+                             headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
+            # if there's a solr error, sleep then move to the next bibcode
+            if r.status_code != 200:
+                time.sleep(sleep_delay)
+                total_delay += sleep_delay
+                logger.error('Error retrieving bibcode {0} from Solr ({1} {2}), sleeping {3}s, for a total delay of {4}s'.
+                             format(s, r.status_code, r.text, sleep_delay, total_delay))
+                continue
+
+            numfound = r.json()['response']['numFound']
+            if numfound == 0:
+                # nothing found - if all bibcodes in the sample were tried, sleep then start the while loop again
+                if num_sampled == config.get('ASTRO_SAMPLE_SIZE'):
+                    time.sleep(sleep_delay)
+                    logger.warning('Astronomy ingest not complete for all in sample (sample: {0}). Sleeping {1}s, for a total delay of {2}s.'
+                                   .format(sample, sleep_delay, total_delay))
+                # if we haven't tried the others in the same, try the rest
+                else:
+                    logger.info(
+                        'Astronomy ingest not complete (test astro bibcode: {0}). Trying the next in the sample.'
+                        .format(s))
+                    continue
+            elif numfound > 1:
+                # returning this as true for now, since technically something was found
+                logger.error('Too many records returned for bibcode {0}'.format(s))
+                return True
+            else:
+                # success
+                return True
+
+    logger.warning('Astronomy ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
 
     return False
 
@@ -224,7 +309,7 @@ if __name__ == '__main__':
         args.user_ids = [x.strip() for x in args.user_ids.split(',')]
 
     if args.daily_update:
-        arxiv_complete = _arxiv_ingest_complete()
+        arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         if arxiv_complete:
             logger.info('arXiv ingest complete. Starting myADS processing.')
             process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, frequency='daily')
@@ -236,4 +321,14 @@ if __name__ == '__main__':
                                        payload_html='Error in the arXiv ingest',
                                        subject='arXiv ingest failed')
     if args.weekly_update:
-        process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, frequency='weekly')
+        astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+        if astro_complete:
+            logger.info('Astronomy ingest complete. Starting myADS processing.')
+            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, frequency='weekly')
+        else:
+            logger.warning('Astronomy ingest failed.')
+            if args.admin_email:
+                msg = utils.send_email(email_addr=args.admin_email,
+                                       payload_plain='Error in the astronomy ingest',
+                                       payload_html='Error in the astronomy ingest',
+                                       subject='Astronomy ingest failed')
