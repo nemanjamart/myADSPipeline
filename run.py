@@ -167,6 +167,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
                 # nothing found - if all bibcodes in the sample were tried, sleep then start the while loop again
                 if num_sampled == config.get('ASTRO_SAMPLE_SIZE'):
                     time.sleep(sleep_delay)
+                    total_delay += sleep_delay
                     logger.warning('Astronomy ingest not complete for all in sample (sample: {0}). Sleeping {1}s, for a total delay of {2}s.'
                                    .format(sample, sleep_delay, total_delay))
                 # if we haven't tried the others in the same, try the rest
