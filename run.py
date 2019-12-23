@@ -189,7 +189,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     return False
 
 
-def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None, frequency='daily', **kwargs):
+def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None, force=False,  frequency='daily', **kwargs):
     """
     Processes myADS mailings
 
@@ -198,6 +198,7 @@ def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None
     :param test_send_to: for testing; process a given user ID but send the output to this email address
     :param admin_email: if provided, email is sent to this address at beginning and end of processing (does not trigger
     for processing for individual users)
+    :param force: if True, will force processing of emails even if sent for a given user already that day
     :param frequency: basestring; 'daily' or 'weekly'
     :return: no return
     """
@@ -235,11 +236,11 @@ def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None
 
     for user in all_users:
         try:
-            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': False})
+            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': force})
         except:  # potential backpressure (we are too fast)
             time.sleep(2)
             print 'Conn problem, retrying...', user
-            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': False})
+            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': force})
 
     # update last processed timestamp
     with app.session_scope() as session:
@@ -304,6 +305,13 @@ if __name__ == '__main__':
                         default=None,
                         help='Send email to this address at beginning and end of processing')
 
+    parser.add_argument('-f',
+                        '--force',
+                        dest='force',
+                        action='store_true',
+                        default=False,
+                        help='Force processing even if already ran today')
+
     args = parser.parse_args()
 
     if args.user_ids:
@@ -313,7 +321,7 @@ if __name__ == '__main__':
         arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         if arxiv_complete:
             logger.info('arXiv ingest complete. Starting myADS processing.')
-            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, frequency='daily')
+            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force, frequency='daily')
         else:
             logger.warning('arXiv ingest failed.')
             if args.admin_email:
@@ -325,7 +333,7 @@ if __name__ == '__main__':
         astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         if astro_complete:
             logger.info('Astronomy ingest complete. Starting myADS processing.')
-            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, frequency='weekly')
+            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force, frequency='weekly')
         else:
             logger.warning('Astronomy ingest failed.')
             if args.admin_email:

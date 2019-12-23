@@ -139,7 +139,7 @@ def get_template_query_results(myADSsetup=None):
     q = []
     sort = []
     beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
-    if myADSsetup['template'] in ['arxiv', 'citations', 'authors']:
+    if myADSsetup['template'] in ['arxiv', 'authors']:
         name = [myADSsetup['name']]
     else:
         name = []
@@ -163,6 +163,7 @@ def get_template_query_results(myADSsetup=None):
         keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))
         sort.append('entry_date desc, bibcode desc')
+        name.append(myADSsetup['name'] + ' (%s citing paper(s))')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
         if myADSsetup.get('classes'):
@@ -208,6 +209,16 @@ def get_template_query_results(myADSsetup=None):
             docs = []
         else:
             docs = json.loads(r.text)['response']['docs']
+            if myADSsetup['template'] == 'arxiv':
+                for doc in docs:
+                    arxiv_ids = [j for j in doc['identifier'] if j.startswith('arXiv:')]
+                    if len(arxiv_ids) > 0:
+                        doc['arxiv_id'] = arxiv_ids[0]
+                    else:
+                        doc['arxiv_id'] = doc['bibcode']
+            elif myADSsetup['template'] == 'citations':
+                name[i] = name[i] % r.json()['response']['numFound']
+
         query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
         payload.append({'name': name[i], 'query_url': query_url, 'query': q[i], 'results': docs})
 
@@ -228,13 +239,17 @@ def _get_first_author_formatted(result_dict=None, author_field='author_norm'):
 
     authors = result_dict.get(author_field)
     if type(authors) == list:
-        first_author = authors[0]
         num = len(authors)
+        if num > 3:
+            first_author = authors[0] + '; ' + authors[1] + '; ' + authors[2] + ' and {0} more'.format(num-3)
+        elif num == 3:
+            first_author = authors[0] + '; ' + authors[1] + '; and ' + authors[2]
+        elif num == 2:
+            first_author = authors[0] + ' and ' + authors[1]
+        else:
+            first_author = authors[0]
     else:
         first_author = authors
-        num = 1
-    if num > 1:
-        first_author += ',+:'
 
     return first_author
 
@@ -269,7 +284,7 @@ def payload_to_plain(payload=None):
                 title = r.get('title')[0]
             else:
                 title = r.get('title', '')
-            formatted += u"{0}: {1} {2}\n".format(r['bibcode'], first_author, title)
+            formatted += u"\"{0},\" {1} ({2})\n".format(title, first_author, r['bibcode'])
         formatted += u"\n"
 
     return formatted

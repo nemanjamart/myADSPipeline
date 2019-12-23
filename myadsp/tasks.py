@@ -93,7 +93,7 @@ def task_process_myads(message):
                 s['rows'] = 2000
             else:
                 s['rows'] = 5
-            s['fields'] = 'bibcode,title,author_norm'
+            s['fields'] = 'bibcode,title,author_norm,identifier'
             if s['type'] == 'query':
                 raw_results = utils.get_query_results(s)
             elif s['type'] == 'template':

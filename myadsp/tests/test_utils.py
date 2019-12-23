@@ -153,7 +153,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'template': 'arxiv',
                       'data': 'AGN',
                       'classes': ['astro-ph'],
-                      'fields': 'bibcode,title,author_norm',
+                      'fields': 'bibcode,title,author_norm,identifier',
                       'rows': 2000}
 
         httpretty.register_uri(
@@ -162,7 +162,7 @@ class TestmyADSCelery(unittest.TestCase):
                                 query=urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) '
                                                         'entdate:["NOW-2DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 sort=urllib.quote_plus('score desc'),
-                                fields='bibcode,title,author_norm',
+                                fields='bibcode,title,author_norm,identifier',
                                 rows=2000),
             content_type='application/json',
             status=200,
@@ -170,7 +170,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {"q": "bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) "
                                                                 "entdate:['NOW-2DAYS' TO NOW] pubdate:[2019-00 TO *]",
-                                                           "fl": "bibcode,title,author_norm",
+                                                           "fl": "bibcode,title,author_norm,identifier",
                                                            "start": "0",
                                                            "sort": "score desc",
                                                            "rows": "5",
@@ -178,6 +178,7 @@ class TestmyADSCelery(unittest.TestCase):
                              "response": {"numFound": 1,
                                           "start": 0,
                                           "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "identifier": ["1971JVST....8..324K", "arXiv:1234:5678"],
                                                     "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                     "author_norm": ["Kurtz, J"]}]}})
         )
@@ -190,9 +191,11 @@ class TestmyADSCelery(unittest.TestCase):
                          format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
                                                   'entdate:["NOW-25DAYS" TO NOW] pubdate:[2019-00 TO *]'),
                                 urllib.quote_plus("score desc, bibcode desc")),
-                                    'results': [{u"bibcode": u"1971JVST....8..324K",
+                                    'results': [{u'arxiv_id': u'arXiv:1234:5678',
+                                                 u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                 u"author_norm": [u"Kurtz, J"]}]}])
+                                                 u"author_norm": [u"Kurtz, J"],
+                                                 u'identifier': [u'1971JVST....8..324K', u'arXiv:1234:5678']}]}])
 
         # test citations query
         myADSsetup = {'name': 'Test Query - citations',
@@ -203,7 +206,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'type': 'template',
                       'template': 'citations',
                       'data': 'author:Kurtz',
-                      'fields': 'bibcode,title,author_norm',
+                      'fields': 'bibcode,title,author_norm,identifier',
                       'rows': 5}
 
         httpretty.register_uri(
@@ -212,7 +215,7 @@ class TestmyADSCelery(unittest.TestCase):
                        query=urllib.quote_plus(
                            'citations(author:Kurtz)'),
                        sort=urllib.quote_plus('date desc, bibcode desc'),
-                       fields='bibcode,title,author_norm',
+                       fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
             status=200,
@@ -220,7 +223,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "citations(author:Kurtz)",
-                                                    "fl": "bibcode,title,author_norm",
+                                                    "fl": "bibcode,title,author_norm,identifier",
                                                     "start": "0",
                                                     "sort": "date desc, bibcode desc",
                                                     "rows": "5",
@@ -230,11 +233,12 @@ class TestmyADSCelery(unittest.TestCase):
                                           "docs": [{"bibcode": "1971JVST....8..324K",
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                    "author_norm": ["Kurtz, J"]}]}})
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"]}]}})
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        self.assertEqual(results, [{'name': myADSsetup['name'],
+        self.assertEqual(results, [{'name': 'Test Query - citations (1 citing paper(s))',
                                     'query': 'citations(author:Kurtz)',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('citations(author:Kurtz)'),
@@ -242,7 +246,8 @@ class TestmyADSCelery(unittest.TestCase):
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                 u"author_norm": [u"Kurtz, J"]}]}])
+                                                 u"author_norm": [u"Kurtz, J"],
+                                                 u"identifier": [u"1971JVST....8..324K"]}]}])
 
         # test authors query
         myADSsetup = {'name': 'Test Query - authors',
@@ -253,7 +258,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'type': 'template',
                       'template': 'authors',
                       'data': 'database:astronomy author:Kurtz',
-                      'fields': 'bibcode,title,author_norm',
+                      'fields': 'bibcode,title,author_norm,identifier',
                       'rows': 5}
 
         httpretty.register_uri(
@@ -262,7 +267,7 @@ class TestmyADSCelery(unittest.TestCase):
                        query=urllib.quote_plus(
                            'author:Kurtz'),
                        sort=urllib.quote_plus('score desc, bibcode desc'),
-                       fields='bibcode,title,author_norm',
+                       fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
             status=200,
@@ -270,7 +275,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "database:astronomy author:Kurtz",
-                                                    "fl": "bibcode,title,author_norm",
+                                                    "fl": "bibcode,title,author_norm,identifier",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
                                                     "rows": "5",
@@ -280,7 +285,8 @@ class TestmyADSCelery(unittest.TestCase):
                                           "docs": [{"bibcode": "1971JVST....8..324K",
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                    "author_norm": ["Kurtz, J"]}]}})
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"]}]}})
         )
 
         results = utils.get_template_query_results(myADSsetup)
@@ -292,7 +298,8 @@ class TestmyADSCelery(unittest.TestCase):
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                 u"author_norm": [u"Kurtz, J"]}]}])
+                                                 u"author_norm": [u"Kurtz, J"],
+                                                 u"identifier": [u"1971JVST....8..324K"]}]}])
 
         # test keyword query
         myADSsetup = {'name': 'Test Query - keywords',
@@ -304,7 +311,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'template': 'keyword',
                       'data': 'AGN',
                       'classes': ['astro-ph', 'physics.space-ph'],
-                      'fields': 'bibcode,title,author_norm',
+                      'fields': 'bibcode,title,author_norm,identifier',
                       'rows': 5}
 
         httpretty.register_uri(
@@ -312,7 +319,7 @@ class TestmyADSCelery(unittest.TestCase):
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus('(arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN'),
                        sort=urllib.quote_plus('entry_date desc, bibcode desc'),
-                       fields='bibcode,title,author_norm',
+                       fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
             status=200,
@@ -320,7 +327,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "(arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN",
-                                                    "fl": "bibcode,title,author_norm",
+                                                    "fl": "bibcode,title,author_norm,identifier",
                                                     "start": "0",
                                                     "sort": "entry_date desc, bibcode desc",
                                                     "rows": "5",
@@ -329,7 +336,8 @@ class TestmyADSCelery(unittest.TestCase):
                                           "start": 0,
                                           "docs": [{"bibcode": "1971JVST....8..324K",
                                                     "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                    "author_norm": ["Kurtz, J"]}]}})
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"]}]}})
         )
 
         httpretty.register_uri(
@@ -337,7 +345,7 @@ class TestmyADSCelery(unittest.TestCase):
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus('trending((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)'),
                        sort=urllib.quote_plus('score desc, bibcode desc'),
-                       fields='bibcode,title,author_norm',
+                       fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
             status=200,
@@ -345,7 +353,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "trending((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)",
-                                                    "fl": "bibcode,title,author_norm",
+                                                    "fl": "bibcode,title,author_norm,identifier",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
                                                     "rows": "5",
@@ -355,7 +363,8 @@ class TestmyADSCelery(unittest.TestCase):
                                           "docs": [{"bibcode": "1971JVST....8..324K",
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                    "author_norm": ["Kurtz, J"]}]}})
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"]}]}})
         )
 
         httpretty.register_uri(
@@ -363,7 +372,7 @@ class TestmyADSCelery(unittest.TestCase):
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus('useful((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)'),
                        sort=urllib.quote_plus('score desc, bibcode desc'),
-                       fields='bibcode,title,author_norm',
+                       fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
             status=200,
@@ -371,7 +380,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "useful((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)",
-                                                    "fl": "bibcode,title,author_norm",
+                                                    "fl": "bibcode,title,author_norm,identifier",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
                                                     "rows": "5",
@@ -381,7 +390,8 @@ class TestmyADSCelery(unittest.TestCase):
                                           "docs": [{"bibcode": "1971JVST....8..324K",
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                    "author_norm": ["Kurtz, J"]}]}})
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"]}]}})
         )
 
         results = utils.get_template_query_results(myADSsetup)
@@ -392,7 +402,8 @@ class TestmyADSCelery(unittest.TestCase):
                                 urllib.quote_plus("entry_date desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                 u"author_norm": [u"Kurtz, J"]}]},
+                                                 u"author_norm": [u"Kurtz, J"],
+                                                 u"identifier": [u"1971JVST....8..324K"]}]},
                                    {'name': 'Test Query - keywords - Most Popular',
                                     'query': 'trending(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
@@ -401,7 +412,8 @@ class TestmyADSCelery(unittest.TestCase):
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                 u"author_norm": [u"Kurtz, J"]}]},
+                                                 u"author_norm": [u"Kurtz, J"],
+                                                 u"identifier": [u"1971JVST....8..324K"]}]},
                                    {'name': 'Test Query - keywords - Most Cited',
                                     'query': 'useful(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
@@ -410,7 +422,8 @@ class TestmyADSCelery(unittest.TestCase):
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
-                                                 u"author_norm": [u"Kurtz, J"]}]}
+                                                 u"author_norm": [u"Kurtz, J"],
+                                                 u"identifier": [u"1971JVST....8..324K"]}]}
                                    ])
 
     def test_get_first_author_formatted(self):
@@ -419,7 +432,7 @@ class TestmyADSCelery(unittest.TestCase):
                         "author_norm": ["Huchra, J", "Macri, L", "Masters, K", "Jarrett, T"]}
 
         first_author = utils._get_first_author_formatted(results_dict, author_field='author_norm')
-        self.assertEquals(first_author, 'Huchra, J,+:')
+        self.assertEquals(first_author, 'Huchra, J; Macri, L; Masters, K and 1 more')
 
         results_dict = {"bibcode": "2012ApJS..199...26H",
                         "title": ["The 2MASS Redshift Survey: Description and Data Release"],
@@ -434,8 +447,8 @@ class TestmyADSCelery(unittest.TestCase):
 
         split_payload = formatted_payload.split('\n')
         self.assertEquals(split_payload[0].strip(), 'Query 1 (https://path/to/query)')
-        self.assertEquals(split_payload[1].strip(), '2012yCat..51392620N: Nantais, J,+: VizieR Online Data Catalog: ' +
-                          'Spectroscopy of M81 globular clusters')
+        self.assertEquals(split_payload[1].strip(), '"VizieR Online Data Catalog: Spectroscopy of M81 globular ' +
+                                                    'clusters," Nantais, J and Huchra, J (2012yCat..51392620N)')
 
     def test_payload_to_html(self):
 
@@ -446,7 +459,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[62].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[66])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
@@ -456,7 +469,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[62].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[66])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)
