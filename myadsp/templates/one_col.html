@@ -9,11 +9,12 @@
                         {% for p in payload %}
                             <h3><a href="{{ p.query_url }}" title="{{ p.query }}" style="color: #1C459B; font-style: italic;font-weight: bold;">{{ p.name }}</a></h3>
                             {% for r in p.results %}
-                                <p><b>{{ _get_title(r) }}</b></p>
                                 {% if 'arxiv_id' in r %}
-                                    <p style="text-indent: 20px">{{ _get_first_author_formatted(r) }} (<a href="{{ abs_url|format(r.arxiv_id) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.arxiv_id }}</a>)</p>
+                                    <p><b><a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
+                                    <p style="text-indent: 20px">{{ _get_first_author_formatted(r, num_authors=3) }}</p>
                                 {% else %}
-                                    <p style="text-indent: 20px">{{ _get_first_author_formatted(r) }} (<a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.bibcode }}</a>)</p>
+                                    <p><b><a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
+                                    <p style="text-indent: 20px">{{ _get_first_author_formatted(r, num_authors=3) }}; {{ r.year }}; {{ r.bibstem[0] }}</p>
                                 {% endif %}
                             {% endfor %}
                         {% endfor %}

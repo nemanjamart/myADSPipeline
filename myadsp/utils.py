@@ -163,7 +163,7 @@ def get_template_query_results(myADSsetup=None):
         keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))
         sort.append('entry_date desc, bibcode desc')
-        name.append(myADSsetup['name'] + ' (%s citing paper(s))')
+        name.append(myADSsetup['name'] + ' (Citations: %s)')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
         if myADSsetup.get('classes'):
@@ -217,7 +217,13 @@ def get_template_query_results(myADSsetup=None):
                     else:
                         doc['arxiv_id'] = doc['bibcode']
             elif myADSsetup['template'] == 'citations':
-                name[i] = name[i] % r.json()['response']['numFound']
+                # get the number of citations
+                cites_query = '{endpoint}?q={query}&rows=1&stats=true&stats.field=citation_count'. \
+                               format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
+                                      query=urllib.quote_plus(keywords))
+                cites_r = requests.get(cites_query,
+                                       headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
+                name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
 
         query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
         payload.append({'name': name[i], 'query_url': query_url, 'query': q[i], 'results': docs})
@@ -225,11 +231,12 @@ def get_template_query_results(myADSsetup=None):
     return payload
 
 
-def _get_first_author_formatted(result_dict=None, author_field='author_norm'):
+def _get_first_author_formatted(result_dict=None, author_field='author_norm', num_authors=3):
     """
     Get the first author, format it correctly
     :param result_dict: dict containing the results from solr for a single bibcode, including the author list
     :param author_field: Solr field to select first author from
+    :param num_authors: number of authors to display
     :return: formatted first author
     """
 
@@ -240,12 +247,12 @@ def _get_first_author_formatted(result_dict=None, author_field='author_norm'):
     authors = result_dict.get(author_field)
     if type(authors) == list:
         num = len(authors)
-        if num > 3:
-            first_author = authors[0] + '; ' + authors[1] + '; ' + authors[2] + ' and {0} more'.format(num-3)
-        elif num == 3:
-            first_author = authors[0] + '; ' + authors[1] + '; and ' + authors[2]
-        elif num == 2:
-            first_author = authors[0] + ' and ' + authors[1]
+        if num_authors < num:
+            first_author = '; '.join(authors[0:num_authors])
+            first_author += ' and {0} more'.format(num-num_authors)
+        elif num >= 2:
+            first_author = '; '.join(authors[:-1])
+            first_author += ' and ' + authors[-1]
         else:
             first_author = authors[0]
     else:

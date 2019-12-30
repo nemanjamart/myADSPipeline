@@ -14,18 +14,26 @@ payload = [{'name': 'Query 1',
                     'query_url': 'https://path/to/query',
                     'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
                                  "bibcode":"2012yCat..51392620N",
-                                 "title":["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"]},
+                                 "title":["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
+                                 "year": "2012",
+                                 "bibstem": ["yCat"]},
                                 {"author_norm": ["Huchra, J", "Macri, L"],
                                  "bibcode":"2012ApJS..199...26H",
-                                 "title":["The 2MASS Redshift Survey Description and Data Release"]}]},
+                                 "title":["The 2MASS Redshift Survey Description and Data Release"],
+                                 "year": "2012",
+                                 "bibstem": ["ApJS"]}]},
            {'name': 'Query 2',
                     'query_url': 'https://path/to/query',
                     'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
                                  "bibcode": "2012yCat..51392620N",
-                                 "title": ["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"]},
+                                 "title": ["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
+                                 "year": "2012",
+                                 "bibstem": ["yCat"]},
                                 {"author_norm": ["Huchra, J", "Macri, L"],
                                  "bibcode": "2012ApJS..199...26H",
-                                 "title": ["The 2MASS Redshift Survey Description and Data Release"]}]}]
+                                 "title": ["The 2MASS Redshift Survey Description and Data Release"],
+                                 "year": "2012",
+                                 "bibstem": ["ApJS"]}]}]
 
 
 class TestmyADSCelery(unittest.TestCase):
@@ -223,7 +231,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "citations(author:Kurtz)",
-                                                    "fl": "bibcode,title,author_norm,identifier",
+                                                    "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "date desc, bibcode desc",
                                                     "rows": "5",
@@ -234,11 +242,47 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                     "author_norm": ["Kurtz, J"],
-                                                    "identifier": ["1971JVST....8..324K"]}]}})
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]}]},
+                             'stats': {u'stats_fields': {u'citation_count': {u'count': 6145,
+                                                                             u'max': 3467.0,
+                                                                             u'mean': 26.28006509357201,
+                                                                             u'min': 0.0,
+                                                                             u'missing': 14,
+                                                                             u'stddev': 81.05058763022076,
+                                                                             u'sum': 161491.0,
+                                                                             u'sumOfSquares': 44605145.0}}}
+                             })
+        )
+
+        httpretty.register_uri(
+            httpretty.GET, '{endpoint}?q={query}&rows=1&stats=true&stats.field=citation_count'. \
+                               format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                                      query=urllib.quote_plus('author:Kurtz')),
+            content_type='application/json',
+            status=200,
+            body=json.dumps({"response": {"numFound": 1,
+                                          "start": 0,
+                                          "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "title": [
+                                                        "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
+                                                    "author_norm": ["Kurtz, J"],
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]}]},
+                              'stats': {u'stats_fields': {u'citation_count': {u'count': 6145,
+                                                                              u'max': 3467.0,
+                                                                              u'mean': 26.28006509357201,
+                                                                              u'min': 0.0,
+                                                                              u'missing': 14,
+                                                                              u'stddev': 81.05058763022076,
+                                                                              u'sum': 161491.0,
+                                                                              u'sumOfSquares': 44605145.0}}}})
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        self.assertEqual(results, [{'name': 'Test Query - citations (1 citing paper(s))',
+        self.assertEqual(results, [{'name': 'Test Query - citations (Citations: 161491)',
                                     'query': 'citations(author:Kurtz)',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('citations(author:Kurtz)'),
@@ -247,7 +291,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"],
-                                                 u"identifier": [u"1971JVST....8..324K"]}]}])
+                                                 u"identifier": [u"1971JVST....8..324K"],
+                                                 u"year": u"1971",
+                                                 u"bibstem": [u"JVST"]}]}])
 
         # test authors query
         myADSsetup = {'name': 'Test Query - authors',
@@ -275,7 +321,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "database:astronomy author:Kurtz",
-                                                    "fl": "bibcode,title,author_norm,identifier",
+                                                    "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
                                                     "rows": "5",
@@ -286,7 +332,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                     "author_norm": ["Kurtz, J"],
-                                                    "identifier": ["1971JVST....8..324K"]}]}})
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]}]}})
         )
 
         results = utils.get_template_query_results(myADSsetup)
@@ -299,7 +347,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"],
-                                                 u"identifier": [u"1971JVST....8..324K"]}]}])
+                                                 u"identifier": [u"1971JVST....8..324K"],
+                                                 u"year": u"1971",
+                                                 u"bibstem": [u"JVST"]}]}])
 
         # test keyword query
         myADSsetup = {'name': 'Test Query - keywords',
@@ -327,7 +377,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "(arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN",
-                                                    "fl": "bibcode,title,author_norm,identifier",
+                                                    "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "entry_date desc, bibcode desc",
                                                     "rows": "5",
@@ -337,7 +387,10 @@ class TestmyADSCelery(unittest.TestCase):
                                           "docs": [{"bibcode": "1971JVST....8..324K",
                                                     "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                     "author_norm": ["Kurtz, J"],
-                                                    "identifier": ["1971JVST....8..324K"]}]}})
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]
+                                                    }]}})
         )
 
         httpretty.register_uri(
@@ -353,7 +406,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "trending((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)",
-                                                    "fl": "bibcode,title,author_norm,identifier",
+                                                    "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
                                                     "rows": "5",
@@ -364,7 +417,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                     "author_norm": ["Kurtz, J"],
-                                                    "identifier": ["1971JVST....8..324K"]}]}})
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]}]}})
         )
 
         httpretty.register_uri(
@@ -380,7 +435,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 "QTime": 23,
                                                 "params": {
                                                     "q": "useful((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)",
-                                                    "fl": "bibcode,title,author_norm,identifier",
+                                                    "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
                                                     "rows": "5",
@@ -391,7 +446,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                     "title": [
                                                         "High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                     "author_norm": ["Kurtz, J"],
-                                                    "identifier": ["1971JVST....8..324K"]}]}})
+                                                    "identifier": ["1971JVST....8..324K"],
+                                                    "year": "1971",
+                                                    "bibstem": ["JVST"]}]}})
         )
 
         results = utils.get_template_query_results(myADSsetup)
@@ -403,7 +460,9 @@ class TestmyADSCelery(unittest.TestCase):
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"],
-                                                 u"identifier": [u"1971JVST....8..324K"]}]},
+                                                 u"identifier": [u"1971JVST....8..324K"],
+                                                 u"year": u"1971",
+                                                 u"bibstem": [u"JVST"]}]},
                                    {'name': 'Test Query - keywords - Most Popular',
                                     'query': 'trending(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
@@ -413,7 +472,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"],
-                                                 u"identifier": [u"1971JVST....8..324K"]}]},
+                                                 u"identifier": [u"1971JVST....8..324K"],
+                                                 u"year": u"1971",
+                                                 u"bibstem": [u"JVST"]}]},
                                    {'name': 'Test Query - keywords - Most Cited',
                                     'query': 'useful(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
@@ -423,7 +484,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"],
-                                                 u"identifier": [u"1971JVST....8..324K"]}]}
+                                                 u"identifier": [u"1971JVST....8..324K"],
+                                                 u"year": u"1971",
+                                                 u"bibstem": [u"JVST"]}]}
                                    ])
 
     def test_get_first_author_formatted(self):
@@ -459,7 +522,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[62].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[66])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[65])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
@@ -469,7 +532,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[62].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[66])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)
