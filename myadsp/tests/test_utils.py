@@ -213,7 +213,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'frequency': 'weekly',
                       'type': 'template',
                       'template': 'citations',
-                      'data': 'author:Kurtz',
+                      'data': 'author:Kurtz OR author:"Kurtz, M."',
                       'fields': 'bibcode,title,author_norm,identifier',
                       'rows': 5}
 
@@ -221,7 +221,7 @@ class TestmyADSCelery(unittest.TestCase):
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                        query=urllib.quote_plus(
-                           'citations(author:Kurtz)'),
+                           'citations(author:Kurtz OR author:"Kurtz, M.")'),
                        sort=urllib.quote_plus('date desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
@@ -230,7 +230,7 @@ class TestmyADSCelery(unittest.TestCase):
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
                                                 "params": {
-                                                    "q": "citations(author:Kurtz)",
+                                                    "q": 'citations(author:Kurtz OR author:"Kurtz, M.")',
                                                     "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "date desc, bibcode desc",
@@ -283,9 +283,9 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': 'Test Query - citations (Citations: 161491)',
-                                    'query': 'citations(author:Kurtz)',
+                                    'query': 'citations(author:Kurtz OR author:"Kurtz, M.")',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('citations(author:Kurtz)'),
+                         format(urllib.quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
                                 urllib.quote_plus("entry_date desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [

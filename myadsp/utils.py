@@ -139,7 +139,7 @@ def get_template_query_results(myADSsetup=None):
     q = []
     sort = []
     beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
-    if myADSsetup['template'] in ['arxiv', 'authors']:
+    if myADSsetup['template'] == 'authors':
         name = [myADSsetup['name']]
     else:
         name = []
@@ -151,14 +151,17 @@ def get_template_query_results(myADSsetup=None):
         classes = ' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in tmp])
         keywords = myADSsetup['data']
         if myADSsetup['frequency'] == 'daily':
-            connector = ' OR '
+            connector = [' ', ' NOT ']
+            name = [myADSsetup['name'], 'Other Recent Papers']
             start = 'NOW-2DAYS'
         elif myADSsetup['frequency'] == 'weekly':
-            connector = ' '
+            connector = [' ']
+            name = [myADSsetup['name']]
             start = 'NOW-25DAYS'
-        q.append('bibstem:arxiv (({0}){3}({1})) entdate:["{4}" TO NOW] pubdate:[{2}-00 TO *]'.
-                 format(classes, keywords, beg_pubyear, connector, start))
-        sort.append('score desc, bibcode desc')
+        for c in connector:
+            q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}" TO NOW] pubdate:[{4}-00 TO *]'.
+                     format(classes, c, keywords, start, beg_pubyear))
+            sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))

@@ -10,7 +10,7 @@
                             <h3><a href="{{ p.query_url }}" title="{{ p.query }}" style="color: #1C459B; font-style: italic;font-weight: bold;">{{ p.name }}</a></h3>
                             {% for r in p.results %}
                                 <p><b><a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
-                                <p>{{ _get_first_author_formatted(r, num_authors=1) }}; {{ r.year }}; {{ r.bibstem[0] }}</p>
+                                <p>{{ _get_first_author_formatted(r, num_authors=1) }}; {{ r.year }}; {{ r.bibstem[0] }} ({{ r.bibcode}})</p>
                             {% endfor %}
                         {% endfor %}
                     </td>
@@ -25,7 +25,7 @@
                             <h3><a href="{{ p.query_url }}" title="{{ p.query }}" style="color: #1C459B; font-style: italic;font-weight: bold;">{{ p.name }}</a></h3>
                             {% for r in p.results %}
                                 <p><b><a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
-                                <p>{{ _get_first_author_formatted(r, num_authors=1) }}; {{ r.year }}; {{ r.bibstem[0] }}</p>
+                                <p>{{ _get_first_author_formatted(r, num_authors=1) }}; {{ r.year }}; {{ r.bibstem[0] }} ({{ r.bibcode }})</p>
                             {% endfor %}
                         {% endfor %}
                     </td>
