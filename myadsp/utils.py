@@ -152,16 +152,22 @@ def get_template_query_results(myADSsetup=None):
         keywords = myADSsetup['data']
         if myADSsetup['frequency'] == 'daily':
             connector = [' ', ' NOT ']
-            name = [myADSsetup['name'], 'Other Recent Papers']
+            name = [myADSsetup['name'], 'Other Recent Papers in Selected Categories']
             start = 'NOW-2DAYS'
         elif myADSsetup['frequency'] == 'weekly':
             connector = [' ']
             name = [myADSsetup['name']]
             start = 'NOW-25DAYS'
-        for c in connector:
-            q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}" TO NOW] pubdate:[{4}-00 TO *]'.
-                     format(classes, c, keywords, start, beg_pubyear))
-            sort.append('score desc, bibcode desc')
+        if not keywords:
+            q.append('bibstem:arxiv ({0}) entdate:["{1}" TO NOW] pubdate:[{2}-00 TO *]').\
+                     format(classes, start, beg_pubyear)
+            sort.append('bibcode desc')
+            name = [myADSsetup['name']]
+        else:
+            for c in connector:
+                q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}" TO NOW] pubdate:[{4}-00 TO *]'.
+                         format(classes, c, keywords, start, beg_pubyear))
+                sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))
@@ -321,7 +327,8 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None):
                                date=date_formatted,
                                payload=payload,
                                abs_url=config.get('ABSTRACT_UI_ENDPOINT'),
-                               email_address=email_address)
+                               email_address=email_address,
+                               arxiv_url=config.get('ARXIV_URL'))
 
     elif col == 2:
         left_col = payload[:len(payload) // 2]

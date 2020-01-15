@@ -522,7 +522,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[62].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[65])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[66])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
@@ -532,7 +532,7 @@ class TestmyADSCelery(unittest.TestCase):
         self.assertEquals(split_payload[62].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #1C459B; font-style: italic;' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[64])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[65])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)
