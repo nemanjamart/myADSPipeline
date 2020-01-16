@@ -139,6 +139,7 @@ def get_template_query_results(myADSsetup=None):
     q = []
     sort = []
     beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
+    end_date = get_date().date()
     if myADSsetup['template'] == 'authors':
         name = [myADSsetup['name']]
     else:
@@ -153,20 +154,20 @@ def get_template_query_results(myADSsetup=None):
         if myADSsetup['frequency'] == 'daily':
             connector = [' ', ' NOT ']
             name = [myADSsetup['name'], 'Other Recent Papers in Selected Categories']
-            start = 'NOW-2DAYS'
+            start_date = (get_date() - datetime.timedelta(days=1)).date()
         elif myADSsetup['frequency'] == 'weekly':
             connector = [' ']
             name = [myADSsetup['name']]
-            start = 'NOW-25DAYS'
+            start_date = (get_date() - datetime.timedelta(days=25)).date()
         if not keywords:
-            q.append('bibstem:arxiv ({0}) entdate:["{1}" TO NOW] pubdate:[{2}-00 TO *]').\
-                     format(classes, start, beg_pubyear)
+            q.append('bibstem:arxiv ({0}) entdate:["{1}Z00:00" TO "{2}Z00:00"] pubdate:[{3}-00 TO *]'.
+                     format(classes, start_date, end_date, beg_pubyear))
             sort.append('bibcode desc')
             name = [myADSsetup['name']]
         else:
             for c in connector:
-                q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}" TO NOW] pubdate:[{4}-00 TO *]'.
-                         format(classes, c, keywords, start, beg_pubyear))
+                q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}Z00:00" TO "{4}Z00:00"] pubdate:[{5}-00 TO *]'.
+                         format(classes, c, keywords, start_date, end_date, beg_pubyear))
                 sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
@@ -175,21 +176,25 @@ def get_template_query_results(myADSsetup=None):
         name.append(myADSsetup['name'] + ' (Citations: %s)')
     elif myADSsetup['template'] == 'authors':
         keywords = myADSsetup['data']
+        start_date = (get_date() - datetime.timedelta(days=25)).date()
         if myADSsetup.get('classes'):
             classes = ' ({})'.format(' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in myADSsetup.get('classes')]))
         else:
             classes = ''
-        q.append('{0}{2} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear, classes))
+        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z00:00"] pubdate:[{4}-00 TO *]'.
+                 format(keywords, classes, start_date, end_date, beg_pubyear))
         sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'keyword':
         keywords = myADSsetup['data']
         raw_name = myADSsetup['name']
+        start_date = (get_date() - datetime.timedelta(days=25)).date()
         if myADSsetup.get('classes'):
             classes = ' ({})'.format(' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in myADSsetup.get('classes')]))
         else:
             classes = ''
         # most recent
-        q.append('{0}{2} entdate:["NOW-25DAYS" TO NOW] pubdate:[{1}-00 TO *]'.format(keywords, beg_pubyear, classes))
+        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z00:00"] pubdate:[{4}-00 TO *]'.
+                 format(keywords, classes, start_date, end_date, beg_pubyear))
         sort.append('entry_date desc, bibcode desc')
         name.append('{0} - Recent Papers'.format(raw_name))
         # most popular
