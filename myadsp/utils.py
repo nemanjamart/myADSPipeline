@@ -223,14 +223,11 @@ def get_template_query_results(myADSsetup=None):
             docs = []
         else:
             docs = json.loads(r.text)['response']['docs']
-            if myADSsetup['template'] == 'arxiv':
-                for doc in docs:
-                    arxiv_ids = [j for j in doc['identifier'] if j.startswith('arXiv:')]
-                    if len(arxiv_ids) > 0:
-                        doc['arxiv_id'] = arxiv_ids[0]
-                    else:
-                        doc['arxiv_id'] = doc['bibcode']
-            elif myADSsetup['template'] == 'citations':
+            for doc in docs:
+                arxiv_ids = [j for j in doc['identifier'] if j.startswith('arXiv:')]
+                if len(arxiv_ids) > 0:
+                    doc['arxiv_id'] = arxiv_ids[0]
+            if myADSsetup['template'] == 'citations':
                 # get the number of citations
                 cites_query = '{endpoint}?q={query}&rows=1&stats=true&stats.field=citation_count'. \
                                format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
@@ -344,7 +341,8 @@ def payload_to_html(payload=None, col=1, frequency='daily', email_address=None):
                                left_payload=left_col,
                                right_payload=right_col,
                                abs_url=config.get('ABSTRACT_UI_ENDPOINT'),
-                               email_address=email_address)
+                               email_address=email_address,
+                               arxiv_url=config.get('ARXIV_URL'))
 
     else:
         logger.warning('Incorrect number of columns (col={0}) passed for payload {1}. No formatting done'.
