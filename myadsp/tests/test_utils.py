@@ -166,13 +166,13 @@ class TestmyADSCelery(unittest.TestCase):
                       'rows': 2000}
 
         start = (utils.get_date() - datetime.timedelta(days=1)).date()
-        end = utils.get_date().date()
+        end = (utils.get_date() - datetime.timedelta(days=1)).date()
         start_year = (utils.get_date() - datetime.timedelta(days=180)).year
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                          format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
                                 query=urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) '
-                                                        'entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                                        'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 sort=urllib.quote_plus('score desc'),
                                 fields='bibcode,title,author_norm,identifier',
                                 rows=2000),
@@ -181,7 +181,7 @@ class TestmyADSCelery(unittest.TestCase):
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
                                                 "params": {"q": "bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) "
-                                                                'entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                                                'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                                            "fl": "bibcode,title,author_norm,identifier",
                                                            "start": "0",
                                                            "sort": "score desc",
@@ -197,13 +197,13 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         start = (utils.get_date() - datetime.timedelta(days=25)).date()
-        end = utils.get_date().date()
+        end = (utils.get_date() - datetime.timedelta(days=1)).date()
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
-                                             'entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                             'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
-                                                  'entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                                  'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u'arxiv_id': u'arXiv:1234:5678',
                                                  u"bibcode": u"1971JVST....8..324K",
@@ -345,9 +345,9 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': myADSsetup['name'],
-                                    'query': 'database:astronomy author:Kurtz entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                    'query': 'database:astronomy author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('database:astronomy author:Kurtz entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                         format(urllib.quote_plus('database:astronomy author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
@@ -459,9 +459,9 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
-                                    'query': 'AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                    'query': 'AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z00:00"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                         format(urllib.quote_plus('AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("entry_date desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],

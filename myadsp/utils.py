@@ -139,7 +139,7 @@ def get_template_query_results(myADSsetup=None):
     q = []
     sort = []
     beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
-    end_date = get_date().date()
+    end_date = (get_date() - datetime.timedelta(days=1)).date()
     if myADSsetup['template'] == 'authors':
         name = [myADSsetup['name']]
     else:
@@ -154,19 +154,23 @@ def get_template_query_results(myADSsetup=None):
         if myADSsetup['frequency'] == 'daily':
             connector = [' ', ' NOT ']
             name = [myADSsetup['name'], 'Other Recent Papers in Selected Categories']
-            start_date = (get_date() - datetime.timedelta(days=1)).date()
+            # on Mondays, deal with the weekend properly
+            if end_date.weekday() == 0:
+                start_date = (get_date() - datetime.timedelta(days=3)).date()
+            else:
+                start_date = (get_date() - datetime.timedelta(days=1)).date()
         elif myADSsetup['frequency'] == 'weekly':
             connector = [' ']
             name = [myADSsetup['name']]
             start_date = (get_date() - datetime.timedelta(days=25)).date()
         if not keywords:
-            q.append('bibstem:arxiv ({0}) entdate:["{1}Z00:00" TO "{2}Z00:00"] pubdate:[{3}-00 TO *]'.
+            q.append('bibstem:arxiv ({0}) entdate:["{1}Z00:00" TO "{2}Z23:59"] pubdate:[{3}-00 TO *]'.
                      format(classes, start_date, end_date, beg_pubyear))
             sort.append('bibcode desc')
             name = [myADSsetup['name']]
         else:
             for c in connector:
-                q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}Z00:00" TO "{4}Z00:00"] pubdate:[{5}-00 TO *]'.
+                q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}Z00:00" TO "{4}Z23:59"] pubdate:[{5}-00 TO *]'.
                          format(classes, c, keywords, start_date, end_date, beg_pubyear))
                 sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'citations':
@@ -181,7 +185,7 @@ def get_template_query_results(myADSsetup=None):
             classes = ' ({})'.format(' OR '.join(['arxiv_class:' + x + '.*' if '.' not in x else 'arxiv_class:' + x for x in myADSsetup.get('classes')]))
         else:
             classes = ''
-        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z00:00"] pubdate:[{4}-00 TO *]'.
+        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z23:59"] pubdate:[{4}-00 TO *]'.
                  format(keywords, classes, start_date, end_date, beg_pubyear))
         sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'keyword':
@@ -193,7 +197,7 @@ def get_template_query_results(myADSsetup=None):
         else:
             classes = ''
         # most recent
-        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z00:00"] pubdate:[{4}-00 TO *]'.
+        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z23:59"] pubdate:[{4}-00 TO *]'.
                  format(keywords, classes, start_date, end_date, beg_pubyear))
         sort.append('entry_date desc, bibcode desc')
         name.append('{0} - Recent Papers'.format(raw_name))
