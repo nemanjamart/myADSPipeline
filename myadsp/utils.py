@@ -155,7 +155,7 @@ def get_template_query_results(myADSsetup=None):
             connector = [' ', ' NOT ']
             name = [myADSsetup['name'], 'Other Recent Papers in Selected Categories']
             # on Mondays, deal with the weekend properly
-            if end_date.weekday() == 0:
+            if get_date().weekday() == 0:
                 start_date = (get_date() - datetime.timedelta(days=3)).date()
             else:
                 start_date = (get_date() - datetime.timedelta(days=1)).date()
