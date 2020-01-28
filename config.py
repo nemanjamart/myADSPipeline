@@ -43,8 +43,8 @@ ARXIV_UPDATE_AGENT_DIR = ARXIV_INCOMING_ABS_DIR + '/UpdateAgent'
 ASTRO_INCOMING_DIR = '/proj/ads/abstracts/ast/index/current/'
 ASTRO_SAMPLE_SIZE = 3
 
-MAIL_DEFAULT_SENDER = 'no-reply@adslabs.org'
-MAIL_PASSWORD = "fix-me"
-MAIL_PORT = 587
-MAIL_SERVER = "fix-me"
-MAIL_USERNAME = "fix-me"
+MAIL_DEFAULT_SENDER = 'ads@cfa.harvard.edu'
+MAIL_PASSWORD = None
+MAIL_PORT = 25
+MAIL_SERVER = None
+MAIL_USERNAME = None

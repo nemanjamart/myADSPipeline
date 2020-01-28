@@ -55,14 +55,16 @@ def send_email(email_addr='', email_template=Email, payload_plain=None, payload_
 
     try:
         server = smtplib.SMTP(config.get('MAIL_SERVER'), config.get('MAIL_PORT'))
-        server.starttls()
-        server.login(config.get('MAIL_USERNAME'),
-                     config.get('MAIL_PASSWORD'))
+        if config.get('MAIL_USE_TLS', False):
+            server.starttls()
+        if config.get('MAIL_USERNAME', None) and config.get('MAIL_PASSWORD', None):
+            server.login(config.get('MAIL_USERNAME'),
+                         config.get('MAIL_PASSWORD'))
         server.sendmail(config.get('MAIL_DEFAULT_SENDER'),
                         email_addr,
                         msg.as_string())
         server.quit()
-    except Exception  as e:
+    except Exception as e:
         logger.error('Error sending email to {0} with payload: {1} with error {2}'.format(email_addr, plain, e))
         return None
 
