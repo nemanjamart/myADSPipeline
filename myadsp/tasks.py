@@ -81,6 +81,38 @@ def task_process_myads(message):
             logger.warning('Maximum number of retries attempted for {0}. myADS processing failed.'.format(userid))
             return
 
+    if message.get('test_bibcode', None):
+        # check that the solr searcher we're getting is still ok by querying for the test bibcode
+        r = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(app.conf.get('API_SOLR_QUERY_ENDPOINT'),
+                                                                                        message.get('test_bibcode')),
+                         headers={'Authorization': 'Bearer ' + app.conf.get('API_TOKEN')})
+
+        fail = True
+        if r.status_code != 200:
+            logger.warning('Error retrieving the test bibcode {0} from solr while processing for user {1}. Retrying'.
+                           format(message.get('test_bibcode'), userid))
+        elif r.json()['response']['numFound'] == 0:
+            logger.warning('Test bibcode {0} not found in solr while processing for user {1}. Retrying'.
+                           format(message.get('test_bibcode'), userid))
+        else:
+            fail = False
+
+        if fail:
+            if message.get('solr_retries', None):
+                retries = message['solr_retries']
+            else:
+                retries = 0
+            if retries < app.conf.get('TOTAL_RETRIES', 3):
+                message['solr_retries'] = retries + 1
+                task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_SOLR_RESEND_WINDOW', 3600))
+                logger.warning('Solr error occurred while processing myADS email for user {0}; rerunning. Retry {1}'.
+                               format(userid, retries))
+                return
+            else:
+                logger.warning('Maximum number of retries attempted for {0}. myADS processing failed: '
+                               'solr searchers were not updated.'.format(userid))
+                return
+
     # then execute each qid /vault/execute-query/qid
     setup = r.json()
     payload = []
@@ -151,6 +183,16 @@ def task_process_myads(message):
             session.commit()
 
     else:
-        task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
-        logger.warning('Error sending myADS email for user {0}, email {1}; rerunning'.format(userid, email))
+        if message.get('send_retries', None):
+            retries = message['send_retries']
+        else:
+            retries = 0
+        if retries < app.conf.get('TOTAL_RETRIES', 3):
+            message['send_retries'] = retries + 1
+            task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
+            logger.warning('Error sending myADS email for user {0}, email {1}; rerunning. Retry {2}'.format(userid, email, retries))
+            return
+        else:
+            logger.warning('Maximum number of retries attempted for {0}. myADS processing failed at sending the email.'.format(userid))
+            return
 

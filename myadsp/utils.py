@@ -156,6 +156,8 @@ def get_template_query_results(myADSsetup=None):
         if myADSsetup['frequency'] == 'daily':
             connector = [' ', ' NOT ']
             name = [myADSsetup['name'], 'Other Recent Papers in Selected Categories']
+            # keyword search should be sorted by score, "other recent" should be sorted by bibcode
+            sort_w_keywords = ['score desc, bibcode desc', 'bibcode desc']
             # on Mondays, deal with the weekend properly
             if get_date().weekday() == 0:
                 start_date = (get_date() - datetime.timedelta(days=3)).date()
@@ -164,6 +166,7 @@ def get_template_query_results(myADSsetup=None):
         elif myADSsetup['frequency'] == 'weekly':
             connector = [' ']
             name = [myADSsetup['name']]
+            sort_w_keywords = ['score desc, bibcode desc']
             start_date = (get_date() - datetime.timedelta(days=25)).date()
         if not keywords:
             q.append('bibstem:arxiv ({0}) entdate:["{1}Z00:00" TO "{2}Z23:59"] pubdate:[{3}-00 TO *]'.
@@ -171,10 +174,10 @@ def get_template_query_results(myADSsetup=None):
             sort.append('bibcode desc')
             name = [myADSsetup['name']]
         else:
-            for c in connector:
+            for c, s in zip(connector, sort_w_keywords):
                 q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}Z00:00" TO "{4}Z23:59"] pubdate:[{5}-00 TO *]'.
                          format(classes, c, keywords, start_date, end_date, beg_pubyear))
-                sort.append('score desc, bibcode desc')
+                sort.append(s)
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
         q.append('citations({0})'.format(keywords))

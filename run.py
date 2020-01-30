@@ -12,6 +12,7 @@ import warnings
 import datetime
 import gzip
 import random
+import json
 from requests.packages.urllib3 import exceptions
 warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
 
@@ -27,7 +28,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     :param date: date to check arXiv records for; default is set by days-delta from today in config (times in local time)
     :param sleep_delay: number of seconds to sleep between retries
     :param sleep_timeout: number of seconds to retry in total before timing out completely
-    :return: True or False
+    :return: test bibcode or None
     """
 
     if not date:
@@ -65,19 +66,19 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         except Exception:
             # could also try to parse another record instead of failing
             logger.exception('Bad arXiv record: {0}'.format(last_file))
-            return False
+            return None
 
     try:
         last_bibc = arxiv_record.get('bibcode')
     except Exception:
         # could also try to parse another record instead of failing
         logger.exception('No bibcode found in arXiv record: {0}'.format(arxiv_record))
-        return False
+        return None
 
     total_delay = 0
     while total_delay < sleep_timeout:
         total_delay += sleep_delay
-        r = requests.get('{0}?q=identifier:{1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_bibc),
+        r = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_bibc),
                          headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         if r.status_code != 200:
             time.sleep(sleep_delay)
@@ -96,11 +97,13 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
             # returning this as true for now, since technically something was found
             logger.error('Too many records returned for bibcode {0}'.format(last_bibc))
 
-        return True
+        logger.info('Numfound: {0} for test bibcode {1}. Response: {2}. URL: {3}'.format(numfound, last_bibc,
+                                                                                         json.dumps(r.json()), r.url))
+        return last_bibc
 
     logger.warning('arXiv ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
 
-    return False
+    return None
 
 
 def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
@@ -109,7 +112,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     :param date: check to check against astronomy bibcode list last updated date
     :param sleep_delay: number of seconds to sleep between retries
     :param sleep_timeout: number of seconds to retry in total before timing out completely
-    :return: True or False
+    :return: test bibcode or None
     """
 
     if not date:
@@ -135,7 +138,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
             # timeout reached before astronomy update completed
             logger.warning('Astronomy update did not complete with the {0}s timeout limit. Exiting.'.format(sleep_timeout))
 
-            return False
+            return None
 
     # check that the astronomy records have made it into solr
     astro_records = []
@@ -152,7 +155,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         num_sampled = 0
         for s in sample:
             num_sampled += 1
-            r = requests.get('{0}?q=identifier:{1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'), s),
+            r = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), s),
                              headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
             # if there's a solr error, sleep then move to the next bibcode
             if r.status_code != 200:
@@ -175,21 +178,23 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
                     logger.info(
                         'Astronomy ingest not complete (test astro bibcode: {0}). Trying the next in the sample.'
                         .format(s))
-                    continue
+                continue
             elif numfound > 1:
                 # returning this as true for now, since technically something was found
                 logger.error('Too many records returned for bibcode {0}'.format(s))
-                return True
-            else:
-                # success
-                return True
+
+            logger.info('Numfound: {0} for test bibcode {1}. Response: {2}. URL: {3}'.format(numfound, s,
+                                                                                             json.dumps(r.json()),
+                                                                                             r.url))
+            return s
 
     logger.warning('Astronomy ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
 
-    return False
+    return None
 
 
-def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None, force=False,  frequency='daily', **kwargs):
+def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None, force=False,
+                  frequency='daily', test_bibcode=None, **kwargs):
     """
     Processes myADS mailings
 
@@ -200,11 +205,13 @@ def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None
     for processing for individual users)
     :param force: if True, will force processing of emails even if sent for a given user already that day
     :param frequency: basestring; 'daily' or 'weekly'
+    :param test_bibcode: bibcode to query to test if Solr searcher has been updated
     :return: no return
     """
     if user_ids:
         for u in user_ids:
-            tasks.task_process_myads({'userid': u, 'frequency': frequency, 'force': True, 'test_send_to': test_send_to})
+            tasks.task_process_myads({'userid': u, 'frequency': frequency, 'force': True,
+                                      'test_send_to': test_send_to, 'test_bibcode': test_bibcode})
             logger.info('Done (just the supplied user IDs)')
             return
 
@@ -236,11 +243,13 @@ def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None
 
     for user in all_users:
         try:
-            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': force})
+            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': force,
+                                            'test_bibcode': test_bibcode})
         except:  # potential backpressure (we are too fast)
             time.sleep(2)
             print 'Conn problem, retrying...', user
-            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': force})
+            tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': force,
+                                            'test_bibcode': test_bibcode})
 
     # update last processed timestamp
     with app.session_scope() as session:
@@ -321,7 +330,8 @@ if __name__ == '__main__':
         arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         if arxiv_complete:
             logger.info('arXiv ingest complete. Starting myADS processing.')
-            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force, frequency='daily')
+            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force,
+                          frequency='daily', test_bibcode=arxiv_complete)
         else:
             logger.warning('arXiv ingest failed.')
             if args.admin_email:
@@ -333,7 +343,8 @@ if __name__ == '__main__':
         astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         if astro_complete:
             logger.info('Astronomy ingest complete. Starting myADS processing.')
-            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force, frequency='weekly')
+            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force,
+                          frequency='weekly', test_bibcode=astro_complete)
         else:
             logger.warning('Astronomy ingest failed.')
             if args.admin_email:
