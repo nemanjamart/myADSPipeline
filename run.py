@@ -13,6 +13,7 @@ import datetime
 import gzip
 import random
 import json
+import urllib
 from requests.packages.urllib3 import exceptions
 warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
 
@@ -99,6 +100,18 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
 
         logger.info('Numfound: {0} for test bibcode {1}. Response: {2}. URL: {3}'.format(numfound, last_bibc,
                                                                                          json.dumps(r.json()), r.url))
+
+        # check number of bibcodes from ingest
+        if get_date().weekday() == 0:
+            start_date = (get_date() - datetime.timedelta(days=3)).date()
+        else:
+            start_date = (get_date() - datetime.timedelta(days=1)).date()
+        beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
+        q = requests.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
+                                            urllib.quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
+                                                              'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))))
+        logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
+
         return last_bibc
 
     logger.warning('arXiv ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))

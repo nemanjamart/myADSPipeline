@@ -200,7 +200,9 @@ class TestmyADSCelery(unittest.TestCase):
         end = (utils.get_date() - datetime.timedelta(days=1)).date()
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
-                                             'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                             # TODO revert
+                                             #'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                             'entdate:["{0}Z00:00" TO NOW] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
                                                   'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
