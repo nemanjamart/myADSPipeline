@@ -124,6 +124,7 @@ def get_query_results(myADSsetup=None):
         else:
             urlparams = {'q': q_params.get('q', None),
                          'fq': q_params.get('fq', None),
+                         'fq_database': q_params.get('fq_database', None),
                          'sort': q_params.get('sort', None)}
             urlparams = dict((k, v) for k, v in urlparams.iteritems() if v is not None)
             query_url = config.get('QUERY_ENDPOINT') % urllib.urlencode(urlparams)
