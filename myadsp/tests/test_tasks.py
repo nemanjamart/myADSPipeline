@@ -72,19 +72,19 @@ class TestmyADSCelery(unittest.TestCase):
             content_type='application/json',
             status=200,
             body=json.dumps([{'name': 'Query 1',
-                              'qid': 1,
+                              'qid': '1234567890abcdefghijklmnopqrstu1',
                               'active': True,
                               'stateful': True,
                               'frequency': 'daily',
                               'type': 'query'},
                              {'name': 'Query 2',
-                              'qid': 2,
+                              'qid': '1234567890abcdefghijklmnopqrstu2',
                               'active': True,
                               'stateful': False,
                               'frequency': 'weekly',
                               'type': 'query'},
                              {'name': 'Query 3',
-                              'qid': 3,
+                              'qid': '1234567890abcdefghijklmnopqrstu3',
                               'active': True,
                               'stateful': False,
                               'frequency': 'weekly',
@@ -95,7 +95,7 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % (1, 'bibcode,title,author_norm', 10),
+            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu1', 'bibcode,title,author_norm', 10),
             content_type='application/json',
             status=200,
             body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',
@@ -146,7 +146,7 @@ class TestmyADSCelery(unittest.TestCase):
         msg = {'userid': 123, 'frequency': 'weekly', 'force': False}
 
         httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % (2, 'bibcode,title,author_norm', 10),
+            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu2', 'bibcode,title,author_norm', 10),
             content_type='application/json',
             status=200,
             body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',

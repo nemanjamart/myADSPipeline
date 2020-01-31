@@ -87,22 +87,22 @@ class TestmyADSCelery(unittest.TestCase):
         created_3 = today - timedelta(self.app.conf['STATEFUL_RESULTS_DAYS'] - 1)
 
         with self.app.session_scope() as session:
-            old_res_1 = Results(user_id=2, qid=123, results=['bib1'], created=created_1)
-            old_res_2 = Results(user_id=2, qid=123, results=['bib2','bib3'], created=created_2)
-            newish_res = Results(user_id=2, qid=123, results=['bib4'], created=created_3)
+            old_res_1 = Results(user_id=2, qid='1234567890abcdefghijklmnopqrstuv', results=['bib1'], created=created_1)
+            old_res_2 = Results(user_id=2, qid='1234567890abcdefghijklmnopqrstuv', results=['bib2','bib3'], created=created_2)
+            newish_res = Results(user_id=2, qid='1234567890abcdefghijklmnopqrstuv', results=['bib4'], created=created_3)
             session.add(old_res_1)
             session.add(old_res_2)
             session.add(newish_res)
             session.commit()
 
         input_res = ['bib1', 'bib2', 'bib3', 'bib4', 'bib5']
-        new_res = app.get_recent_results(user_id=2, qid=123, input_results=input_res, ndays=self.app.conf['STATEFUL_RESULTS_DAYS'])
+        new_res = app.get_recent_results(user_id=2, qid='1234567890abcdefghijklmnopqrstuv', input_results=input_res, ndays=self.app.conf['STATEFUL_RESULTS_DAYS'])
 
         # only new results are returned, including results more recent than STATEFUL_RESULTS_DAYS
         self.assertEqual(set(new_res), set(['bib4', 'bib5']))
 
         with self.app.session_scope() as session:
-            new_stored = session.query(Results).filter(and_(Results.qid == 123,
+            new_stored = session.query(Results).filter(and_(Results.qid == '1234567890abcdefghijklmnopqrstuv',
                                                             Results.user_id == 2,
                                                             Results.created >= today)).all()
 

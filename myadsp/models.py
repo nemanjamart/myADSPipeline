@@ -31,6 +31,6 @@ class Results(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
-    qid = Column(Integer)
+    qid = Column(String(32))
     results = Column(ARRAY(String))
     created = Column(UTCDateTime)

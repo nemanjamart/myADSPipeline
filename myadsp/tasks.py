@@ -83,15 +83,15 @@ def task_process_myads(message):
 
     if message.get('test_bibcode', None):
         # check that the solr searcher we're getting is still ok by querying for the test bibcode
-        r = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(app.conf.get('API_SOLR_QUERY_ENDPOINT'),
+        q = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(app.conf.get('API_SOLR_QUERY_ENDPOINT'),
                                                                                         message.get('test_bibcode')),
                          headers={'Authorization': 'Bearer ' + app.conf.get('API_TOKEN')})
 
         fail = True
-        if r.status_code != 200:
+        if q.status_code != 200:
             logger.warning('Error retrieving the test bibcode {0} from solr while processing for user {1}. Retrying'.
                            format(message.get('test_bibcode'), userid))
-        elif r.json()['response']['numFound'] == 0:
+        elif q.json()['response']['numFound'] == 0:
             logger.warning('Test bibcode {0} not found in solr while processing for user {1}. Retrying'.
                            format(message.get('test_bibcode'), userid))
         else:

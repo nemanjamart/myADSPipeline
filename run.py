@@ -109,7 +109,8 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
         q = requests.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
                                             urllib.quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
-                                                              'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))))
+                                                              'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
+                         headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 
         return last_bibc
