@@ -122,7 +122,10 @@ def get_query_results(myADSsetup=None):
             query = 'bigquery'
         # regular query
         else:
-            urlparams = {'q': q_params.get('q', None), 'sort': q_params.get('sort', 'bibcode+desc')}
+            urlparams = {'q': q_params.get('q', None),
+                         'fq': q_params.get('fq', None),
+                         'sort': q_params.get('sort', None)}
+            urlparams = dict((k, v) for k, v in urlparams.iteritems() if v is not None)
             query_url = config.get('QUERY_ENDPOINT') % urllib.urlencode(urlparams)
             query = q_params.get('q', None)
     else:
