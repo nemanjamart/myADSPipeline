@@ -152,6 +152,10 @@ def task_process_myads(message):
             # wrong frequency for this round of processing
             pass
 
+    if len(payload) == 0:
+        logger.info('No payload for user {0} for the {1} email. No email was sent.'.format(userid, message['frequency']))
+        return
+
     # if test email address provided, send there; otherwise fetch user email address
     if message.get('test_send_to', None):
         email = message.get('test_send_to')
