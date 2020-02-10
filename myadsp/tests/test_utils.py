@@ -165,8 +165,8 @@ class TestmyADSCelery(unittest.TestCase):
                       'fields': 'bibcode,title,author_norm,identifier',
                       'rows': 2000}
 
-        start = (utils.get_date() - datetime.timedelta(days=1)).date()
-        end = (utils.get_date() - datetime.timedelta(days=1)).date()
+        start = utils.get_date().date()
+        end = utils.get_date().date()
         start_year = (utils.get_date() - datetime.timedelta(days=180)).year
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
@@ -197,12 +197,10 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         start = (utils.get_date() - datetime.timedelta(days=25)).date()
-        end = (utils.get_date() - datetime.timedelta(days=1)).date()
+        end = utils.get_date().date()
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
-                                             # TODO revert
-                                             #'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
-                                             'entdate:["{0}Z00:00" TO NOW] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                             'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
                          format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
                                                   'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),

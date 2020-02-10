@@ -145,7 +145,7 @@ def get_template_query_results(myADSsetup=None):
     q = []
     sort = []
     beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
-    end_date = (get_date() - datetime.timedelta(days=1)).date()
+    end_date = get_date().date()
     if myADSsetup['template'] == 'authors':
         name = [myADSsetup['name']]
     else:
@@ -164,29 +164,23 @@ def get_template_query_results(myADSsetup=None):
             sort_w_keywords = ['score desc, bibcode desc', 'bibcode desc']
             # on Mondays, deal with the weekend properly
             if get_date().weekday() == 0:
-                start_date = (get_date() - datetime.timedelta(days=3)).date()
+                start_date = (get_date() - datetime.timedelta(days=2)).date()
             else:
-                start_date = (get_date() - datetime.timedelta(days=1)).date()
+                start_date = get_date().date()
         elif myADSsetup['frequency'] == 'weekly':
             connector = [' ']
             name = [myADSsetup['name']]
             sort_w_keywords = ['score desc, bibcode desc']
             start_date = (get_date() - datetime.timedelta(days=25)).date()
         if not keywords:
-            # TODO revert back to previous query after fixing classic ingest
-            #q.append('bibstem:arxiv ({0}) entdate:["{1}Z00:00" TO "{2}Z23:59"] pubdate:[{3}-00 TO *]'.
-            #         format(classes, start_date, end_date, beg_pubyear))
-            q.append('bibstem:arxiv ({0}) entdate:["{1}Z00:00" TO NOW] pubdate:[{2}-00 TO *]'.
-                     format(classes, start_date, beg_pubyear))
+            q.append('bibstem:arxiv ({0}) entdate:["{1}Z00:00" TO "{2}Z23:59"] pubdate:[{3}-00 TO *]'.
+                     format(classes, start_date, end_date, beg_pubyear))
             sort.append('bibcode desc')
             name = [myADSsetup['name']]
         else:
             for c, s in zip(connector, sort_w_keywords):
-                # TODO revert back to previous query after fixing classic ingest
-                #q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}Z00:00" TO "{4}Z23:59"] pubdate:[{5}-00 TO *]'.
-                #         format(classes, c, keywords, start_date, end_date, beg_pubyear))
-                q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}Z00:00" TO NOW] pubdate:[{4}-00 TO *]'.
-                         format(classes, c, keywords, start_date, beg_pubyear))
+                q.append('bibstem:arxiv (({0}){1}({2})) entdate:["{3}Z00:00" TO "{4}Z23:59"] pubdate:[{5}-00 TO *]'.
+                         format(classes, c, keywords, start_date, end_date, beg_pubyear))
                 sort.append(s)
     elif myADSsetup['template'] == 'citations':
         keywords = myADSsetup['data']
@@ -255,10 +249,7 @@ def get_template_query_results(myADSsetup=None):
                                        headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
 
-        # TODO revert to old version once classic ingest is fixed
-        #query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
-        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/').\
-            replace('NOW', urllib.quote_plus('"{0}Z23:59"'.format(end_date)))
+        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
         payload.append({'name': name[i], 'query_url': query_url, 'query': q[i], 'results': docs})
 
     return payload
