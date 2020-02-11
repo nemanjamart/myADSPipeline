@@ -180,7 +180,7 @@ class TestmyADSCelery(unittest.TestCase):
             status=200,
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
-                                                "params": {"q": "bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) "
+                                                "params": {"q": "bibstem:arxiv (arxiv_class:(astro-ph.*) OR (AGN)) "
                                                                 'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                                            "fl": "bibcode,title,author_norm,identifier",
                                                            "start": "0",
@@ -199,10 +199,10 @@ class TestmyADSCelery(unittest.TestCase):
         start = (utils.get_date() - datetime.timedelta(days=25)).date()
         end = utils.get_date().date()
         self.assertEqual(results, [{'name': myADSsetup['name'],
-                                    'query': 'bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
+                                    'query': 'bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                              'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) (AGN)) '
+                         format(urllib.quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                                   'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u'arxiv_id': u'arXiv:1234:5678',
@@ -373,7 +373,7 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus('(arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN'),
+                       query=urllib.quote_plus('arxiv_class:(astro-ph.* OR physics.space-ph) AGN'),
                        sort=urllib.quote_plus('entry_date desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
@@ -382,7 +382,7 @@ class TestmyADSCelery(unittest.TestCase):
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
                                                 "params": {
-                                                    "q": "(arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN",
+                                                    "q": "arxiv_class:(astro-ph.* OR physics.space-ph) AGN",
                                                     "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "entry_date desc, bibcode desc",
@@ -402,7 +402,7 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus('trending((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)'),
+                       query=urllib.quote_plus('trending(arxiv_class:(astro-ph.* OR physics.space-ph) AGN)'),
                        sort=urllib.quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
@@ -411,7 +411,7 @@ class TestmyADSCelery(unittest.TestCase):
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
                                                 "params": {
-                                                    "q": "trending((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)",
+                                                    "q": "trending(arxiv_class:(astro-ph.* OR physics.space-ph) AGN)",
                                                     "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
@@ -431,7 +431,7 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus('useful((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)'),
+                       query=urllib.quote_plus('useful(arxiv_class:(astro-ph.* OR physics.space-ph) AGN)'),
                        sort=urllib.quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
@@ -440,7 +440,7 @@ class TestmyADSCelery(unittest.TestCase):
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
                                                 "params": {
-                                                    "q": "useful((arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) AGN)",
+                                                    "q": "useful(arxiv_class:(astro-ph.* OR physics.space-ph) AGN)",
                                                     "fl": "bibcode,title,author_norm,identifier,year,bibstem",
                                                     "start": "0",
                                                     "sort": "score desc, bibcode desc",
@@ -459,9 +459,9 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
-                                    'query': 'AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                    'query': 'AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                         format(urllib.quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("entry_date desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -470,9 +470,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"year": u"1971",
                                                  u"bibstem": [u"JVST"]}]},
                                    {'name': 'Test Query - keywords - Most Popular',
-                                    'query': 'trending(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
+                                    'query': 'trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('trending(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))'),
+                         format(urllib.quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
@@ -482,9 +482,9 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"year": u"1971",
                                                  u"bibstem": [u"JVST"]}]},
                                    {'name': 'Test Query - keywords - Most Cited',
-                                    'query': 'useful(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))',
+                                    'query': 'useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))',
                                     'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('useful(AGN (arxiv_class:astro-ph.* OR arxiv_class:physics.space-ph))'),
+                         format(urllib.quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 urllib.quote_plus("score desc, bibcode desc")),
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
