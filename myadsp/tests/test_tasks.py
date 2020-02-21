@@ -71,31 +71,44 @@ class TestmyADSCelery(unittest.TestCase):
             httpretty.GET, self.app.conf['API_VAULT_MYADS_SETUP'] % msg['userid'],
             content_type='application/json',
             status=200,
-            body=json.dumps([{'name': 'Query 1',
+            body=json.dumps([{'id': 1,
+                              'name': 'Query 1',
                               'qid': '1234567890abcdefghijklmnopqrstu1',
                               'active': True,
                               'stateful': True,
                               'frequency': 'daily',
                               'type': 'query'},
-                             {'name': 'Query 2',
+                             {'id': 2,
+                              'name': 'Query 2',
                               'qid': '1234567890abcdefghijklmnopqrstu2',
                               'active': True,
                               'stateful': False,
                               'frequency': 'weekly',
                               'type': 'query'},
-                             {'name': 'Query 3',
+                             {'id': 3,
+                              'name': 'Query 3',
                               'qid': '1234567890abcdefghijklmnopqrstu3',
                               'active': True,
                               'stateful': False,
                               'frequency': 'weekly',
                               'type': 'template',
                               'template': 'authors',
-                              'data': {'data': 'author:Kurtz'}}
+                              'data': {'data': 'author:Kurtz'}},
+                             {'id': 4,
+                              'name': 'Query 4',
+                              'qid': None,
+                              'active': True,
+                              'stateful': True,
+                              'frequency': 'daily',
+                              'type': 'template',
+                              'template': 'arxiv',
+                              'data': 'star',
+                              'classes': ['astro-ph']}
                              ])
         )
 
         httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu1', 'bibcode,title,author_norm', 10),
+            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu1', 'bibcode,title,author_norm', 10, 'bibcode+desc'),
             content_type='application/json',
             status=200,
             body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',
@@ -146,7 +159,7 @@ class TestmyADSCelery(unittest.TestCase):
         msg = {'userid': 123, 'frequency': 'weekly', 'force': False}
 
         httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu2', 'bibcode,title,author_norm', 10),
+            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu2', 'bibcode,title,author_norm', 10, 'bibcode+desc'),
             content_type='application/json',
             status=200,
             body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',

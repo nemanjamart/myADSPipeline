@@ -139,10 +139,16 @@ def task_process_myads(message):
                 if s['stateful']:
                     docs = r['results']
                     bibcodes = [doc['bibcode'] for doc in docs]
-                    good_bibc = app.get_recent_results(user_id=userid,
-                                                       qid=s['qid'],
-                                                       input_results=bibcodes,
-                                                       ndays=app.conf.get('STATEFUL_RESULTS_DAYS', 7))
+                    if s.get('qid', None):
+                        good_bibc = app.get_recent_results(user_id=userid,
+                                                           qid=s['qid'],
+                                                           input_results=bibcodes,
+                                                           ndays=app.conf.get('STATEFUL_RESULTS_DAYS', 7))
+                    else:
+                        good_bibc = app.get_recent_results(user_id=userid,
+                                                           setup_id=s['id'],
+                                                           input_results=bibcodes,
+                                                           ndays=app.conf.get('STATEFUL_RESULTS_DAYS', 7))
                     results = [doc for doc in docs if doc['bibcode'] in good_bibc]
                 else:
                     results = r['results']

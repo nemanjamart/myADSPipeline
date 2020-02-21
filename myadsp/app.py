@@ -42,28 +42,38 @@ class myADSCelery(ADSCelery):
 
         return list(user_ids)
 
-    def get_recent_results(self, user_id=None, qid=None, input_results=None, ndays=7):
+    def get_recent_results(self, user_id=None, qid=None, setup_id=None, input_results=None, ndays=7):
         """
         Compares input results to those in storage and returns only new results.
         Results newer than ndays old are automatically included in the result.
         Stores new results.
 
         :param user_id: int; ADSWS user ID
-        :param qid: int; QID of the query (from vault "queries" table)
+        :param qid: string; QID of the query (from vault "queries" table)
+        :param setup_id: int; ID from myADSsetup field (from vault myADS export); used for templated queries
         :param input_results: list; all results from a given query, as returned from solr
         :param ndays: int; number of days to automatically consider results new
 
         :return: list; new results
         """
 
+        if not qid and not setup_id:
+            self.logger.warning('Must pass either qid or setup ID to get recent results. User: {0}'.format(user_id))
+            return None
+
         now = get_date()
         ndays_date = now - timedelta(days=ndays)
         old_results = set()
         with self.session_scope() as session:
             # get stored results older than ndays old
-            q = session.query(Results).filter(and_(Results.qid == qid,
-                                                   Results.user_id == user_id,
-                                                   Results.created < ndays_date)).all()
+            if qid:
+                q = session.query(Results).filter(and_(Results.qid == qid,
+                                                       Results.user_id == user_id,
+                                                       Results.created < ndays_date)).all()
+            else:
+                q = session.query(Results).filter(and_(Results.setup_id == setup_id,
+                                                       Results.user_id == user_id,
+                                                       Results.created < ndays_date)).all()
 
             for res in q:
                 old_results.update(res.results)
@@ -72,9 +82,14 @@ class myADSCelery(ADSCelery):
             output_results = set(input_results).difference(old_results)
 
             # now remove the rest of the stored results, so we're not storing any overlap
-            r = session.query(Results).filter(and_(Results.qid == qid,
-                                                   Results.user_id == user_id,
-                                                   Results.created >= ndays_date))
+            if qid:
+                r = session.query(Results).filter(and_(Results.qid == qid,
+                                                       Results.user_id == user_id,
+                                                       Results.created >= ndays_date))
+            else:
+                r = session.query(Results).filter(and_(Results.setup_id == setup_id,
+                                                       Results.user_id == user_id,
+                                                       Results.created >= ndays_date))
 
             for res in r.all():
                 old_results.update(res.results)
@@ -82,9 +97,15 @@ class myADSCelery(ADSCelery):
             # remove all results currently stored for this query - this is stored
             new_results = list(output_results.difference(old_results))
 
-            results = Results(user_id=user_id, qid=qid, results=new_results, created=now)
-            session.add(results)
-            session.commit()
+            # don't store empty results sets
+            if new_results:
+                if qid:
+                    results = Results(user_id=user_id, qid=qid, results=new_results, created=now)
+                else:
+                    results = Results(user_id=user_id, setup_id=setup_id, results=new_results, created=now)
+
+                session.add(results)
+                session.commit()
 
         # note that old results will be returned if the bibcode has changed; it's a feature not a bug
         return list(output_results)

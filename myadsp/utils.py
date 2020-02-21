@@ -68,7 +68,8 @@ def send_email(email_addr='', email_template=Email, payload_plain=None, payload_
         logger.error('Error sending email to {0} with payload: {1} with error {2}'.format(email_addr, plain, e))
         return None
 
-    logger.info('Email sent to {0} with payload: {1}'.format(email_addr, plain))
+    logger.info('Email sent to {0}'.format(email_addr))
+    logger.debug('Email sent to {0} with payload: {1}'.format(email_addr, plain))
     return msg
 
 
@@ -103,8 +104,13 @@ def get_query_results(myADSsetup=None):
     :return: payload: list of dicts containing query name, query url, raw search results
     """
 
+    # get the latest results, unless it's not that type of query
+    if myADSsetup['stateful']:
+        sort = 'date desc, bibcode desc'
+    else:
+        sort = 'score desc, bibcode desc'
     q = requests.get(config.get('API_VAULT_EXECUTE_QUERY') %
-                     (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows']),
+                     (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows'], urllib.quote_plus(sort)),
                      headers={'Accept': 'application/json',
                               'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
     if q.status_code == 200:
@@ -132,6 +138,7 @@ def get_query_results(myADSsetup=None):
     else:
         # no parameters returned - should this url be something else?
         query_url = config.get('UI_ENDPOINT')
+        query = None
 
     return [{'name': myADSsetup['name'], 'query_url': query_url, 'results': docs, 'query': query}]
 

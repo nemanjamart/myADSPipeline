@@ -32,5 +32,6 @@ class Results(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
     qid = Column(String(32))
+    setup_id = Column(Integer)
     results = Column(ARRAY(String))
     created = Column(UTCDateTime)

@@ -120,7 +120,7 @@ class TestmyADSCelery(unittest.TestCase):
                       'fields': 'bibcode,title,author_norm'}
 
         httpretty.register_uri(
-            httpretty.GET, self.app._config.get('API_VAULT_EXECUTE_QUERY') % (1, myADSsetup['fields'], 5),
+            httpretty.GET, self.app._config.get('API_VAULT_EXECUTE_QUERY') % (1, myADSsetup['fields'], 5, 'score+desc'),
             content_type='application/json',
             status=200,
             body=json.dumps({"responseHeader": {"status": 0,
