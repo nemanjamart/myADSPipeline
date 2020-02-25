@@ -18,7 +18,7 @@ class TestmyADSCelery(unittest.TestCase):
         'port': 5432,
         'host': '127.0.0.1',
         'user': 'postgres',
-        'database': 'myads_pipeline'
+        'database': 'test_myadspipeline'
     }
     postgresql_url = 'postgresql://{user}:{user}@{host}:{port}/{database}' \
         .format(user=postgresql_url_dict['user'],

@@ -1,7 +1,7 @@
 # possible values: WARN, INFO, DEBUG
 LOGGING_LEVEL = 'DEBUG'
 
-SQLALCHEMY_URL = 'sqlite:///'
+SQLALCHEMY_URL = "postgresql+psycopg2://postgres:postgres@localhost:5432/test_myadspipeline"
 SQLALCHEMY_ECHO = False
 
 # celery config

@@ -18,7 +18,7 @@ addons:
   postgresql: "9.6"
 
 before_script:
-  - psql -c 'create database myads_pipeline;' -U postgres
+  - psql -c 'create database test_myadspipeline;' -U postgres
 
 script:
   - "py.test"
