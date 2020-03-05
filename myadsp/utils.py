@@ -143,95 +143,57 @@ def get_query_results(myADSsetup=None):
     return [{'name': myADSsetup['name'], 'query_url': query_url, 'results': docs, 'query': query}]
 
 
-def get_template_query_results(myADSsetup=None):
+def get_template_query_results(myADSsetup):
     """
     Retrieves results for a templated query
-    :param myADSsetup: dict containing query terms and metadata
+    :param myADSsetup: dict containing query terms, params, and metadata
     :return: payload: list of dicts containing query name, query url, raw search results
     """
-    q = []
-    sort = []
-    beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
-    end_date = get_date().date()
+
     if myADSsetup['template'] == 'authors':
         name = [myADSsetup['name']]
     else:
         name = []
+
+    try:
+        setup_query = myADSsetup['query']
+        setup_query_q = setup_query[0]['q']
+        setup_query_sort = setup_query[0]['sort']
+    except KeyError:
+        logger.error('myADS setup provided is missing the query and sort params. Setup: {0}'.format(myADSsetup))
+        raise Exception('Query params must be provided')
+
     if myADSsetup['template'] == 'arxiv':
-        if type(myADSsetup['classes']) != list:
-            tmp = [myADSsetup['classes']]
-        else:
-            tmp = myADSsetup['classes']
-        classes = 'arxiv_class:(' + ' OR '.join([x + '.*' if '.' not in x else x for x in tmp]) + ')'
-        keywords = myADSsetup['data']
         if myADSsetup['frequency'] == 'daily':
-            connector = [' ', ' NOT ']
-            name = [myADSsetup['name'], 'Other Recent Papers in Selected Categories']
-            # keyword search should be sorted by score, "other recent" should be sorted by bibcode
-            sort_w_keywords = ['score desc, bibcode desc', 'bibcode desc']
-            # on Mondays, deal with the weekend properly
-            if get_date().weekday() == 0:
-                start_date = (get_date() - datetime.timedelta(days=2)).date()
+            if myADSsetup['data']:
+                for q in myADSsetup['query']:
+                    if q['sort'].startswith('score desc'):
+                        name.append(myADSsetup['name'])
+                    else:
+                        name.append('Other Recent Papers in Selected Categories')
             else:
-                start_date = get_date().date()
+                name.append(myADSsetup['name'])
         elif myADSsetup['frequency'] == 'weekly':
-            connector = [' ']
-            name = [myADSsetup['name']]
-            sort_w_keywords = ['score desc, bibcode desc']
-            start_date = (get_date() - datetime.timedelta(days=25)).date()
-        if not keywords:
-            q.append('bibstem:arxiv {0} entdate:["{1}Z00:00" TO "{2}Z23:59"] pubdate:[{3}-00 TO *]'.
-                     format(classes, start_date, end_date, beg_pubyear))
-            sort.append('bibcode desc')
-            name = [myADSsetup['name']]
-        else:
-            for c, s in zip(connector, sort_w_keywords):
-                q.append('bibstem:arxiv ({0}{1}({2})) entdate:["{3}Z00:00" TO "{4}Z23:59"] pubdate:[{5}-00 TO *]'.
-                         format(classes, c, keywords, start_date, end_date, beg_pubyear))
-                sort.append(s)
+            name.append(myADSsetup['name'])
     elif myADSsetup['template'] == 'citations':
-        keywords = myADSsetup['data']
-        q.append('citations({0})'.format(keywords))
-        sort.append('entry_date desc, bibcode desc')
         name.append(myADSsetup['name'] + ' (Citations: %s)')
-    elif myADSsetup['template'] == 'authors':
-        keywords = myADSsetup['data']
-        start_date = (get_date() - datetime.timedelta(days=25)).date()
-        if myADSsetup.get('classes'):
-            classes = ' {}'.format('arxiv_class:(' + ' OR '.join([x + '.*' if '.' not in x else x for x in myADSsetup.get('classes')]) + ')')
-        else:
-            classes = ''
-        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z23:59"] pubdate:[{4}-00 TO *]'.
-                 format(keywords, classes, start_date, end_date, beg_pubyear))
-        sort.append('score desc, bibcode desc')
     elif myADSsetup['template'] == 'keyword':
-        keywords = myADSsetup['data']
         raw_name = myADSsetup['name']
-        start_date = (get_date() - datetime.timedelta(days=25)).date()
-        if myADSsetup.get('classes'):
-            classes = ' {}'.format('arxiv_class:(' + ' OR '.join([x + '.*' if '.' not in x else x for x in myADSsetup.get('classes')]) + ')')
-        else:
-            classes = ''
-        # most recent
-        q.append('{0}{1} entdate:["{2}Z00:00" TO "{3}Z23:59"] pubdate:[{4}-00 TO *]'.
-                 format(keywords, classes, start_date, end_date, beg_pubyear))
-        sort.append('entry_date desc, bibcode desc')
-        name.append('{0} - Recent Papers'.format(raw_name))
-        # most popular
-        q.append('trending({0}{1})'.format(keywords, classes))
-        sort.append('score desc, bibcode desc')
-        name.append('{0} - Most Popular'.format(raw_name))
-        # most cited
-        q.append('useful({0}{1})'.format(keywords, classes))
-        sort.append('score desc, bibcode desc')
-        name.append('{0} - Most Cited'.format(raw_name))
+        for q in myADSsetup['query']:
+            if q['q'].startswith('trending('):
+                name.append('{0} - Most Popular'.format(raw_name))
+            elif q['q'].startswith('useful('):
+                name.append('{0} - Most Cited'.format(raw_name))
+            else:
+                name.append('{0} - Recent Papers'.format(raw_name))
 
     payload = []
-    for i in range(len(q)):
+
+    for i in range(len(myADSsetup['query'])):
         query = '{endpoint}?q={query}&sort={sort}'. \
                          format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
-                                query=urllib.quote_plus(q[i]),
-                                sort=urllib.quote_plus(sort[i]))
+                                query=urllib.quote_plus(myADSsetup['query'][i]['q']),
+                                sort=urllib.quote_plus(myADSsetup['query'][i]['sort']))
         r = requests.get('{query_url}&fl={fields}&rows={rows}'.
                          format(query_url=query,
                                 fields=myADSsetup['fields'],
@@ -239,7 +201,7 @@ def get_template_query_results(myADSsetup=None):
                          headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
 
         if r.status_code != 200:
-            logger.error('Failed getting results for query {0}'.format(q[i]))
+            logger.error('Failed getting results for query {0}'.format(myADSsetup['query'][i]))
             docs = []
         else:
             docs = json.loads(r.text)['response']['docs']
@@ -251,13 +213,13 @@ def get_template_query_results(myADSsetup=None):
                 # get the number of citations
                 cites_query = '{endpoint}?q={query}&rows=1&stats=true&stats.field=citation_count'. \
                                format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
-                                      query=urllib.quote_plus(keywords))
+                                      query=urllib.quote_plus(myADSsetup['data']))
                 cites_r = requests.get(cites_query,
                                        headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
 
         query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
-        payload.append({'name': name[i], 'query_url': query_url, 'query': q[i], 'results': docs})
+        payload.append({'name': name[i], 'query_url': query_url, 'query': myADSsetup['query'][i]['q'], 'results': docs})
 
     return payload
 

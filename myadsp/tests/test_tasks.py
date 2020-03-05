@@ -93,7 +93,9 @@ class TestmyADSCelery(unittest.TestCase):
                               'frequency': 'weekly',
                               'type': 'template',
                               'template': 'authors',
-                              'data': {'data': 'author:Kurtz'}},
+                              'data': {'data': 'author:Kurtz'},
+                              'query': [{'q': 'author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                        'sort': 'score desc, bibcode desc'}]},
                              {'id': 4,
                               'name': 'Query 4',
                               'qid': None,
@@ -103,7 +105,14 @@ class TestmyADSCelery(unittest.TestCase):
                               'type': 'template',
                               'template': 'arxiv',
                               'data': 'star',
-                              'classes': ['astro-ph']}
+                              'classes': ['astro-ph'],
+                              'query': [{'q': 'bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) '
+                                             'entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                        'sort': 'score desc, bibcode desc'},
+                                        {'q': 'bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) '
+                                              'entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                         'sort': 'bibcode desc'}]
+                              }
                              ])
         )
 
@@ -191,16 +200,17 @@ class TestmyADSCelery(unittest.TestCase):
         )
         httpretty.register_uri(
             httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT']+'?q={0}&sort={1}&fl={2}&rows={3}'.
-            format('author:Kurtz', 'score+desc+bibcode+desc', 'bibcode,title,author_norm', 5),
+            format('author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                   'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
             content_type='application/json',
             status=200,
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
-                                                "params": {"q": "author:Kurtz",
+                                                "params": {"q": 'author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
                                                            "x-amzn-trace-id": "Root=1-5d769c6c-f96bfa49d348f03d8ecb7464",
                                                            "fl": "bibcode,title,author_norm",
                                                            "start": "0",
-                                                           "sort": "score desc",
+                                                           "sort": "score desc, bibcode desc",
                                                            "rows": "5",
                                                            "wt": "json"}},
                              "response": {"numFound": 2712,
