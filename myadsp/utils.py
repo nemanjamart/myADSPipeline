@@ -1,14 +1,17 @@
 from adsputils import get_date, setup_logging, load_config
 from .emails import Email
+from myadsp import app as app_module
 
-import requests
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import urllib
 import json
+import os
 from jinja2 import Environment, PackageLoader, select_autoescape
 import datetime
+
+app = app_module.myADSCelery('myADS-pipeline', proj_home=os.path.realpath(os.path.join(os.path.dirname(__file__), '../')))
 
 logger = setup_logging('myads_utils')
 config = {}
@@ -83,10 +86,10 @@ def get_user_email(userid=None):
     """
 
     if userid:
-        r = requests.get(config.get('API_ADSWS_USER_EMAIL') % userid,
-                         headers={'Accept': 'application/json',
-                                  'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))}
-                         )
+        r = app.client.get(config.get('API_ADSWS_USER_EMAIL') % userid,
+                           headers={'Accept': 'application/json',
+                                    'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))}
+                           )
         if r.status_code == 200:
             return r.json()['email']
         else:
@@ -109,10 +112,10 @@ def get_query_results(myADSsetup=None):
         sort = 'date desc, bibcode desc'
     else:
         sort = 'score desc, bibcode desc'
-    q = requests.get(config.get('API_VAULT_EXECUTE_QUERY') %
-                     (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows'], urllib.quote_plus(sort)),
-                     headers={'Accept': 'application/json',
-                              'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
+    q = app.client.get(config.get('API_VAULT_EXECUTE_QUERY') %
+                       (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows'], urllib.quote_plus(sort)),
+                       headers={'Accept': 'application/json',
+                                'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
     if q.status_code == 200:
         docs = json.loads(q.text)['response']['docs']
         q_params = json.loads(q.text)['responseHeader']['params']
@@ -194,11 +197,11 @@ def get_template_query_results(myADSsetup):
                          format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
                                 query=urllib.quote_plus(myADSsetup['query'][i]['q']),
                                 sort=urllib.quote_plus(myADSsetup['query'][i]['sort']))
-        r = requests.get('{query_url}&fl={fields}&rows={rows}'.
-                         format(query_url=query,
-                                fields=myADSsetup['fields'],
-                                rows=myADSsetup['rows']),
-                         headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
+        r = app.client.get('{query_url}&fl={fields}&rows={rows}'.
+                           format(query_url=query,
+                                  fields=myADSsetup['fields'],
+                                  rows=myADSsetup['rows']),
+                           headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
 
         if r.status_code != 200:
             logger.error('Failed getting results for query {0}'.format(myADSsetup['query'][i]))
@@ -214,8 +217,8 @@ def get_template_query_results(myADSsetup):
                 cites_query = '{endpoint}?q={query}&rows=1&stats=true&stats.field=citation_count'. \
                                format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
                                       query=urllib.quote_plus(myADSsetup['data']))
-                cites_r = requests.get(cites_query,
-                                       headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
+                cites_r = app.client.get(cites_query,
+                                         headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
 
         query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
