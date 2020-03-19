@@ -7,7 +7,6 @@ from .emails import myADSTemplate
 
 #from flask import current_app
 from kombu import Queue
-import requests
 import os
 import json
 from sqlalchemy.orm import exc as ormexc
@@ -63,9 +62,9 @@ def task_process_myads(message):
                 logger.info('Email for user {0} already sent today, but force mode is on'.format(userid))
 
     # first fetch the myADS setup from /vault/get-myads
-    r = requests.get(app.conf.get('API_VAULT_MYADS_SETUP') % userid,
-                     headers={'Accept': 'application/json',
-                              'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
+    r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP') % userid,
+                       headers={'Accept': 'application/json',
+                                'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
 
     if r.status_code != 200:
         if message.get('retries', None):
@@ -83,9 +82,9 @@ def task_process_myads(message):
 
     if message.get('test_bibcode', None):
         # check that the solr searcher we're getting is still ok by querying for the test bibcode
-        q = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(app.conf.get('API_SOLR_QUERY_ENDPOINT'),
-                                                                                        message.get('test_bibcode')),
-                         headers={'Authorization': 'Bearer ' + app.conf.get('API_TOKEN')})
+        q = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(app.conf.get('API_SOLR_QUERY_ENDPOINT'),
+                                                                                          message.get('test_bibcode')),
+                           headers={'Authorization': 'Bearer ' + app.conf.get('API_TOKEN')})
 
         fail = True
         if q.status_code != 200:

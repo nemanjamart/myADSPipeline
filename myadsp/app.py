@@ -1,7 +1,6 @@
 from adsputils import get_date, ADSCelery
 from .models import AuthorInfo, Results
 
-import requests
 from datetime import timedelta
 from sqlalchemy.sql.expression import and_
 from sqlalchemy.orm import exc as ormexc
@@ -21,10 +20,10 @@ class myADSCelery(ADSCelery):
             for q in session.query(AuthorInfo).filter(AuthorInfo.last_sent < get_date()).all():
                 user_ids.add(q.id)
 
-        r = requests.get(self._config.get('API_VAULT_MYADS_USERS') % get_date(since).isoformat(),
-                         headers={'Accept': 'application/json',
-                                  'Authorization': 'Bearer {0}'.format(self._config.get('API_TOKEN'))}
-                         )
+        r = self.client.get(self._config.get('API_VAULT_MYADS_USERS') % get_date(since).isoformat(),
+                            headers={'Accept': 'application/json',
+                                     'Authorization': 'Bearer {0}'.format(self._config.get('API_TOKEN'))}
+                            )
 
         if r.status_code != 200:
             self.logger.warning('Error getting new myADS users from API')

@@ -7,7 +7,6 @@ import os
 import time
 import argparse
 import logging
-import requests
 import warnings
 import datetime
 import gzip
@@ -79,8 +78,8 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     total_delay = 0
     while total_delay < sleep_timeout:
         total_delay += sleep_delay
-        r = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_bibc),
-                         headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
+        r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_bibc),
+                           headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         if r.status_code != 200:
             time.sleep(sleep_delay)
             logger.error('Error retrieving bibcode {0} from Solr ({1} {2}), retrying'.
@@ -107,10 +106,10 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         else:
             start_date = (get_date() - datetime.timedelta(days=1)).date()
         beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
-        q = requests.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
-                                            urllib.quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
-                                                              'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
-                         headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
+        q = app.client.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
+                                              urllib.quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
+                                                                'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
+                           headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 
         return last_bibc
@@ -169,8 +168,8 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         num_sampled = 0
         for s in sample:
             num_sampled += 1
-            r = requests.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), s),
-                             headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
+            r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), s),
+                               headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
             # if there's a solr error, sleep then move to the next bibcode
             if r.status_code != 200:
                 time.sleep(sleep_delay)
