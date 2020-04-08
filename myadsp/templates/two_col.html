@@ -10,9 +10,9 @@
                             <h3><a href="{{ p.query_url }}" title="{{ p.query }}" style="color: #000000; font-weight: bold;">{{ p.name }}</a></h3>
                             {% if p.results|length > 0 %}
                                 {% for r in p.results %}
-                                    <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;"><b><a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
+                                    <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;"><b><a href="{{ abs_url|format(r.bibcode, loop.index) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
                                     {% if (r.bibstem[0] == 'arXiv') and ('arxiv_id' in r) %}
-                                        <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=1) }} (<a href="{{ arxiv_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.arxiv_id }}</a>)</p>
+                                        <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=1) }} (<a href="{{ arxiv_url|format(r.bibcode, loop.index) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.arxiv_id }}</a>)</p>
                                     {% else %}
                                         <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=1) }} ({{ r.bibcode}})</p>
                                     {% endif %}
@@ -33,9 +33,9 @@
                             <h3><a href="{{ p.query_url }}" title="{{ p.query }}" style="color: #000000; font-weight: bold;">{{ p.name }}</a></h3>
                             {% if p.results|length > 0 %}
                                 {% for r in p.results %}
-                                    <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;"><b><a href="{{ abs_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
+                                    <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;"><b><a href="{{ abs_url|format(r.bibcode, loop.index) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
                                     {% if (r.bibstem[0] == 'arXiv') and ('arxiv_id' in r) %}
-                                        <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=1) }} (<a href="{{ arxiv_url|format(r.bibcode) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.arxiv_id }}</a>)</p>
+                                        <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=1) }} (<a href="{{ arxiv_url|format(r.bibcode, loop.index) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.arxiv_id }}</a>)</p>
                                     {% else %}
                                         <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=1) }} ({{ r.bibcode}})</p>
                                     {% endif %}

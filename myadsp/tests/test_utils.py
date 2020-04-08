@@ -545,21 +545,21 @@ class TestmyADSCelery(unittest.TestCase):
         formatted_payload = utils.payload_to_html(payload, col=1, email_address="test@tester.com")
 
         split_payload = formatted_payload.split('\n')
-        self.assertIn(u'templateColumnContainer"', split_payload[57])
-        self.assertEquals(split_payload[62].strip(),
+        self.assertIn(u'templateColumnContainer"', split_payload[70])
+        self.assertEquals(split_payload[75].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[66])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=rank:1"', split_payload[79])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
         split_payload = formatted_payload.split('\n')
 
-        self.assertIn(u'class="leftColumnContent"', split_payload[60])
-        self.assertEquals(split_payload[62].strip(),
+        self.assertIn(u'class="leftColumnContent"', split_payload[73])
+        self.assertEquals(split_payload[75].strip(),
                           u'<h3><a href="https://path/to/query" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract"', split_payload[65])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=rank:1"', split_payload[78])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)
