@@ -27,6 +27,9 @@ ARXIV_URL = 'https://ui.adsabs.harvard.edu/link_gateway/%s/EPRINT_HTML?utm_sourc
 # For stateful results, number of days after which we will consider a result stale and no longer show it
 STATEFUL_RESULTS_DAYS = 7
 
+# Number of queries to switch from one to two column email format
+NUM_QUERIES_TWO_COL = 3
+
 # Reschedule sending if there's an error (units=seconds)
 MYADS_RESEND_WINDOW = 60*10
 # Reschedule sending if there's an error with Solr (units=seconds)
