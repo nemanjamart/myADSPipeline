@@ -11,7 +11,7 @@ CELERY_BROKER = 'pyamqp://'
 API_TOKEN = 'fix me'
 
 UI_ENDPOINT = 'https://ui.adsabs.harvard.edu'
-ABSTRACT_UI_ENDPOINT = UI_ENDPOINT + '/abs/%s/abstract'
+ABSTRACT_UI_ENDPOINT = UI_ENDPOINT + '/abs/%s/abstract?utm_source=myads&utm_medium=email&utm_campaign=rank:%s'
 BIGQUERY_ENDPOINT = UI_ENDPOINT + '/search/q=docs(%s)'
 QUERY_ENDPOINT = UI_ENDPOINT + '/search/%s'
 
@@ -22,10 +22,13 @@ API_VAULT_MYADS_SETUP = API_ENDPOINT + '/v1/vault/get-myads/%s'
 API_VAULT_EXECUTE_QUERY = API_ENDPOINT + '/v1/vault/execute_query/%s?fl=%s&rows=%s&sort=%s'
 API_ADSWS_USER_EMAIL = API_ENDPOINT + '/v1/user/%s'
 
-ARXIV_URL = 'https://ui.adsabs.harvard.edu/link_gateway/%s/EPRINT_HTML'
+ARXIV_URL = 'https://ui.adsabs.harvard.edu/link_gateway/%s/EPRINT_HTML?utm_source=myads&utm_medium=email&utm_campaign=rank:%s'
 
 # For stateful results, number of days after which we will consider a result stale and no longer show it
 STATEFUL_RESULTS_DAYS = 7
+
+# Number of queries to switch from one to two column email format
+NUM_QUERIES_TWO_COL = 3
 
 # Reschedule sending if there's an error (units=seconds)
 MYADS_RESEND_WINDOW = 60*10

@@ -173,7 +173,7 @@ def task_process_myads(message):
         subject = 'Weekly myADS Notification'
 
     payload_plain = utils.payload_to_plain(payload)
-    if len(payload) <= 3:
+    if len(payload) < app.conf.get('NUM_QUERIES_TWO_COL', 3):
         payload_html = utils.payload_to_html(payload, col=1, frequency=message['frequency'], email_address=email)
     else:
         payload_html = utils.payload_to_html(payload, col=2, frequency=message['frequency'], email_address=email)

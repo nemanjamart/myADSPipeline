@@ -28,6 +28,19 @@
                         font-size:16px !important;
                         line-height:125% !important;
                     }
+
+                    h2, h3 {
+                        font-size: 100%
+                    }
+                }
+                @media screen and (prefers-color-scheme: dark) {
+                    a {
+                        color: #FFFFFF;
+                    }
+
+                    body {
+                        background-color: #2d3239;
+                    }
                 }
             </style>
         </head>
@@ -47,8 +60,7 @@
                                         <tr>
                                             <td align="center" valign="top" style="width:100%; background-color: #ffffff;">
                                                 <h2 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;"> myADS Personal Notification Service </h2>
-                                                <h3 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;"> {{ frequency.capitalize() }} email </h3>
-                                                <h3 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;"> {{ date }} </h3>
+                                                <h3 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;"> {{ frequency.capitalize() }} email ({{ date }}) </h3>
                                             </td>
                                         </tr>
                                         <tr>

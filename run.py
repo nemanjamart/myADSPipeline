@@ -206,13 +206,14 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     return None
 
 
-def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None, force=False,
+def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None, admin_email=None, force=False,
                   frequency='daily', test_bibcode=None, **kwargs):
     """
     Processes myADS mailings
 
     :param since: check for new myADS users since this date
-    :param user_ids: users to process claims for, else all users - list
+    :param user_ids: users to process claims for, else all users - list (given as adsws IDs)
+    :param user_emails: users to process claims for, else all users - list (given as email addresses)
     :param test_send_to: for testing; process a given user ID but send the output to this email address
     :param admin_email: if provided, email is sent to this address at beginning and end of processing (does not trigger
     for processing for individual users)
@@ -225,8 +226,27 @@ def process_myads(since=None, user_ids=None, test_send_to=None, admin_email=None
         for u in user_ids:
             tasks.task_process_myads({'userid': u, 'frequency': frequency, 'force': True,
                                       'test_send_to': test_send_to, 'test_bibcode': test_bibcode})
-            logger.info('Done (just the supplied user IDs)')
-            return
+
+        logger.info('Done (just the supplied user IDs)')
+        return
+
+    if user_emails:
+        for u in user_emails:
+            r = app.client.get(config.get('API_ADSWS_USER_EMAIL') % u,
+                               headers={'Accept': 'application/json',
+                                        'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))}
+                               )
+            if r.status_code == 200:
+                user_id = r.json()['id']
+            else:
+                logger.warning('Error getting user ID with email {0} from the API. Processing aborted for this user'.format(u))
+                continue
+
+            tasks.task_process_myads({'userid': user_id, 'frequency': frequency, 'force': True,
+                                      'test_send_to': test_send_to, 'test_bibcode': test_bibcode})
+
+        logger.info('Done (just the supplied user IDs)')
+        return
 
     logging.captureWarnings(True)
 
@@ -301,6 +321,13 @@ if __name__ == '__main__':
                         default=None,
                         help='Comma delimited list of user ids to run myADS notifications for')
 
+    parser.add_argument('-e',
+                        '--email_user',
+                        dest='user_emails',
+                        action='store',
+                        default=None,
+                        help='Comma delimited list of user emails to run myADS notifications for')
+
     parser.add_argument('-d',
                         '--daily',
                         dest='daily_update',
@@ -339,11 +366,14 @@ if __name__ == '__main__':
     if args.user_ids:
         args.user_ids = [x.strip() for x in args.user_ids.split(',')]
 
+    if args.user_emails:
+        args.user_emails = [x.strip() for x in args.user_emails.split(',')]
+
     if args.daily_update:
         arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         if arxiv_complete:
             logger.info('arXiv ingest complete. Starting myADS processing.')
-            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force,
+            process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
                           frequency='daily', test_bibcode=arxiv_complete)
         else:
             logger.warning('arXiv ingest failed.')
@@ -356,7 +386,7 @@ if __name__ == '__main__':
         astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         if astro_complete:
             logger.info('Astronomy ingest complete. Starting myADS processing.')
-            process_myads(args.since_date, args.user_ids, args.test_send_to, args.admin_email, args.force,
+            process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
                           frequency='weekly', test_bibcode=astro_complete)
         else:
             logger.warning('Astronomy ingest failed.')
