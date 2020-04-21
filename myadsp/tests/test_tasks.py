@@ -35,6 +35,8 @@ class TestmyADSCelery(unittest.TestCase):
                                                          'SQLALCHEMY_ECHO': False,
                                                          'PROJ_HOME': proj_home,
                                                          'TEST_DIR': os.path.join(proj_home, 'myadsp/tests'),
+                                                         'TOTAL_RETRIES': 1,
+                                                         'MYADS_RESEND_WINDOW': 1
                                                          })
         Base.metadata.bind = self.app._session.get_bind()
         Base.metadata.create_all()
@@ -152,13 +154,122 @@ class TestmyADSCelery(unittest.TestCase):
             patch.object(utils, 'get_user_email') as get_user_email, \
             patch.object(utils, 'payload_to_plain') as payload_to_plain, \
             patch.object(utils, 'payload_to_html') as payload_to_html, \
-            patch.object(utils, 'send_email') as send_email:
+            patch.object(utils, 'send_email') as send_email, \
+            patch.object(tasks.task_process_myads, 'apply_async') as rerun_task:
 
             get_recent_results.return_value = ['2019arXiv190800829P', '2019arXiv190800678L']
             get_user_email.return_value = 'test@test.com'
             payload_to_plain.return_value = 'plain payload'
             payload_to_html.return_value = '<em>html payload</em>'
             send_email.return_value = 'this should be a MIMEMultipart object'
+
+            tasks.task_process_myads(msg)
+            self.assertTrue(rerun_task.called)
+
+            httpretty.register_uri(
+                httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={0}&sort={1}&fl={2}&rows={3}'.
+                               format(
+                    'bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                    'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
+                content_type='application/json',
+                status=200,
+                body=json.dumps({"responseHeader": {"status": 0,
+                                                    "QTime": 23,
+                                                    "params": {
+                                                        "q": 'bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                                        "x-amzn-trace-id": "Root=1-5d769c6c-f96bfa49d348f03d8ecb7464",
+                                                        "fl": "bibcode,title,author_norm",
+                                                        "start": "0",
+                                                        "sort": "score desc, bibcode desc",
+                                                        "rows": "5",
+                                                        "wt": "json"}},
+                                 "response": {"numFound": 2712,
+                                              "start": 0,
+                                              "docs": [{"bibcode": "1971JVST....8..324K",
+                                                        "title": ["High-Capacity Lead Tin Barrel Dome..."],
+                                                        "author_norm": ["Kurtz, J"],
+                                                        "identifier": ["1971JVST....8..324K"],
+                                                        "year": "1971",
+                                                        "bibstem": ["JVST"]},
+                                                       {"bibcode": "1972ApJ...178..701K",
+                                                        "title": [
+                                                            "Search for Coronal Line Emission from the Cygnus Loop"],
+                                                        "author_norm": ["Kurtz, D", "Vanden Bout, P", "Angel, J"],
+                                                        "identifier": ["1972ApJ...178..701K"],
+                                                        "year": "1972",
+                                                        "bibstem": ["ApJ"]},
+                                                       {"bibcode": "1973ApOpt..12..891K",
+                                                        "title": ["Author's Reply to Comments on: Experimental..."],
+                                                        "author_norm": ["Kurtz, R"],
+                                                        "identifier": ["1973ApOpt..12..891K"],
+                                                        "year": "1973",
+                                                        "bibstem": ["ApOpt"]},
+                                                       {"bibcode": "1973SSASJ..37..725W",
+                                                        "title": ["Priming Effect of 15N-Labeled Fertilizers..."],
+                                                        "author_norm": ["Westerman, R", "Kurtz, L"],
+                                                        "identifier": ["1973SSASJ..37..725W"],
+                                                        "year": "1973",
+                                                        "bibstem": ["SSASJ"]},
+                                                       {"bibcode": "1965JSpRo...2..818K",
+                                                        "title": [
+                                                            "Orbital tracking and decay analysis of the saturn..."],
+                                                        "author_norm": ["Kurtz, H", "McNair, A", "Naumcheff, M"],
+                                                        "identifier": ["1965JSpRo...2..818K"],
+                                                        "year": "1965",
+                                                        "bibstem": ["JSpRo"]}]}})
+            )
+            httpretty.register_uri(
+                httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={0}&sort={1}&fl={2}&rows={3}'.
+                               format(
+                    'bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                    'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
+                content_type='application/json',
+                status=200,
+                body=json.dumps({"responseHeader": {"status": 0,
+                                                    "QTime": 23,
+                                                    "params": {
+                                                        "q": 'bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                                        "x-amzn-trace-id": "Root=1-5d769c6c-f96bfa49d348f03d8ecb7464",
+                                                        "fl": "bibcode,title,author_norm",
+                                                        "start": "0",
+                                                        "sort": "score desc, bibcode desc",
+                                                        "rows": "5",
+                                                        "wt": "json"}},
+                                 "response": {"numFound": 2712,
+                                              "start": 0,
+                                              "docs": [{"bibcode": "1971JVST....8..324K",
+                                                        "title": ["High-Capacity Lead Tin Barrel Dome..."],
+                                                        "author_norm": ["Kurtz, J"],
+                                                        "identifier": ["1971JVST....8..324K"],
+                                                        "year": "1971",
+                                                        "bibstem": ["JVST"]},
+                                                       {"bibcode": "1972ApJ...178..701K",
+                                                        "title": [
+                                                            "Search for Coronal Line Emission from the Cygnus Loop"],
+                                                        "author_norm": ["Kurtz, D", "Vanden Bout, P", "Angel, J"],
+                                                        "identifier": ["1972ApJ...178..701K"],
+                                                        "year": "1972",
+                                                        "bibstem": ["ApJ"]},
+                                                       {"bibcode": "1973ApOpt..12..891K",
+                                                        "title": ["Author's Reply to Comments on: Experimental..."],
+                                                        "author_norm": ["Kurtz, R"],
+                                                        "identifier": ["1973ApOpt..12..891K"],
+                                                        "year": "1973",
+                                                        "bibstem": ["ApOpt"]},
+                                                       {"bibcode": "1973SSASJ..37..725W",
+                                                        "title": ["Priming Effect of 15N-Labeled Fertilizers..."],
+                                                        "author_norm": ["Westerman, R", "Kurtz, L"],
+                                                        "identifier": ["1973SSASJ..37..725W"],
+                                                        "year": "1973",
+                                                        "bibstem": ["SSASJ"]},
+                                                       {"bibcode": "1965JSpRo...2..818K",
+                                                        "title": [
+                                                            "Orbital tracking and decay analysis of the saturn..."],
+                                                        "author_norm": ["Kurtz, H", "McNair, A", "Naumcheff, M"],
+                                                        "identifier": ["1965JSpRo...2..818K"],
+                                                        "year": "1965",
+                                                        "bibstem": ["JSpRo"]}]}})
+            )
 
             tasks.task_process_myads(msg)
             with self.app.session_scope() as session:

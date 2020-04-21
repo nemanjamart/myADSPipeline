@@ -126,9 +126,39 @@ def task_process_myads(message):
                 s['rows'] = 5
             s['fields'] = 'bibcode,title,author_norm,identifier,year,bibstem'
             if s['type'] == 'query':
-                raw_results = utils.get_query_results(s)
+                try:
+                    raw_results = utils.get_query_results(s)
+                except RuntimeError:
+                    if message.get('query_retries', None):
+                        retries = message['query_retries']
+                    else:
+                        retries = 0
+                    if retries < app.conf.get('TOTAL_RETRIES', 3):
+                        message['query_retries'] = retries + 1
+                        logger.warning('Error getting query results for user {0}. Retrying. Retry: {1}'.format(userid,
+                                                                                                               retries))
+                        task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
+                        return
+                    else:
+                        logger.warning('Maximum number of query retries attempted for user {0}; myADS processing '
+                                       'failed due to retrieving query results failures.'.format(userid))
             elif s['type'] == 'template':
-                raw_results = utils.get_template_query_results(s)
+                try:
+                    raw_results = utils.get_template_query_results(s)
+                except RuntimeError:
+                    if message.get('query_retries', None):
+                        retries = message['query_retries']
+                    else:
+                        retries = 0
+                    if retries < app.conf.get('TOTAL_RETRIES', 3):
+                        message['query_retries'] = retries + 1
+                        logger.warning('Error getting template query results for user {0}. Retrying. '
+                                       'Retry:'.format(userid, retries))
+                        task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
+                        return
+                    else:
+                        logger.warning('Maximum number of query retries attempted for user {0}; myADS processing '
+                                       'failed due to retrieving query results failures.'.format(userid))
             else:
                 logger.warning('Wrong query type passed for query {0}, user {1}'.format(s, userid))
                 pass
