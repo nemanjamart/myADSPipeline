@@ -39,10 +39,14 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     arxiv_file = config.get('ARXIV_UPDATE_AGENT_DIR') + '/UpdateAgent.out.' + date + '.gz'
 
     arxiv_records = []
-    with gzip.open(arxiv_file, 'r') as flist:
-        for l in flist.readlines():
-            # sample line: oai/arXiv.org/0706/2491 2018-06-13T01:00:29
-            arxiv_records.append(l.split()[0])
+    try:
+        with gzip.open(arxiv_file, 'r') as flist:
+            for l in flist.readlines():
+                # sample line: oai/arXiv.org/0706/2491 2018-06-13T01:00:29
+                arxiv_records.append(l.split()[0])
+    except IOError:
+        logger.warning('arXiv ingest file not found. Exiting.')
+        return None
 
     arxiv_records.sort()
 
@@ -60,13 +64,17 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     last_file = config.get('ARXIV_INCOMING_ABS_DIR') + '/' + last_record
 
     arxiv_parser = arxiv.ArxivParser()
-    with open(last_file, 'rU') as fp:
-        try:
-            arxiv_record = arxiv_parser.parse(fp)
-        except Exception:
-            # could also try to parse another record instead of failing
-            logger.exception('Bad arXiv record: {0}'.format(last_file))
-            return None
+    try:
+        with open(last_file, 'rU') as fp:
+            try:
+                arxiv_record = arxiv_parser.parse(fp)
+            except Exception:
+                # could also try to parse another record instead of failing
+                logger.exception('Bad arXiv record: {0}'.format(last_file))
+                return None
+    except IOError:
+        logger.warning('Individual arXiv ingest file not found. Exiting.')
+        return None
 
     try:
         last_bibc = arxiv_record.get('bibcode')
@@ -135,30 +143,40 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
 
     astro_file = config.get('ASTRO_INCOMING_DIR') + 'matches.input'
 
-    # check modified datestamp on file - should be recent (otherwise contains old data)
-    mod_date = datetime.datetime.fromtimestamp(os.path.getmtime(astro_file))
+    # make sure file is present and check modified datestamp on file - should be recent (otherwise contains old data)
+    try:
+        mod_date = datetime.datetime.fromtimestamp(os.path.getmtime(astro_file))
+    except OSError:
+        mod_date = None
 
-    # if the file is old, sleep until the file is updated
-    if mod_date < date:
+    # if the file is old or missing, sleep until the file is present and updated
+    if not mod_date or mod_date < date:
         total_delay = 0
         while total_delay < sleep_timeout:
             total_delay += sleep_delay
             time.sleep(sleep_delay)
-            mod_date = datetime.datetime.fromtimestamp(os.path.getmtime(astro_file))
-            if mod_date > date:
+            try:
+                mod_date = datetime.datetime.fromtimestamp(os.path.getmtime(astro_file))
+            except OSError:
+                mod_date = None
+            if mod_date and mod_date > date:
                 break
         else:
             # timeout reached before astronomy update completed
-            logger.warning('Astronomy update did not complete with the {0}s timeout limit. Exiting.'.format(sleep_timeout))
+            logger.warning('Astronomy update did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
 
             return None
 
     # check that the astronomy records have made it into solr
     astro_records = []
-    with open(astro_file, 'r') as flist:
-        for l in flist.readlines():
-            # sample line: 2019A&A...632A..94J     K58-37447
-            astro_records.append(l.split()[0])
+    try:
+        with open(astro_file, 'r') as flist:
+            for l in flist.readlines():
+                # sample line: 2019A&A...632A..94J     K58-37447
+                astro_records.append(l.split()[0])
+    except IOError:
+        logger.warning('Astronomy ingest file not found. Exiting.')
+        return None
 
     # get several randomly selected bibcodes, in case one had ingest issues
     sample = random.sample(astro_records, config.get('ASTRO_SAMPLE_SIZE'))
@@ -370,7 +388,11 @@ if __name__ == '__main__':
         args.user_emails = [x.strip() for x in args.user_emails.split(',')]
 
     if args.daily_update:
-        arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+        try:
+            arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+        except Exception as e:
+            logger.warning('arXiv ingest code failed with an exception: {0}'.format(e))
+            arxiv_complete = None
         if arxiv_complete:
             logger.info('arXiv ingest complete. Starting myADS processing.')
             process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
@@ -383,7 +405,11 @@ if __name__ == '__main__':
                                        payload_html='Error in the arXiv ingest',
                                        subject='arXiv ingest failed')
     if args.weekly_update:
-        astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+        try:
+            astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+        except Exception as e:
+            logger.warning('Astronomy ingest code failed with an exception: {0}'.format(e))
+            astro_complete = None
         if astro_complete:
             logger.info('Astronomy ingest complete. Starting myADS processing.')
             process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,

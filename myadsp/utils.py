@@ -120,9 +120,8 @@ def get_query_results(myADSsetup=None):
         docs = json.loads(q.text)['response']['docs']
         q_params = json.loads(q.text)['responseHeader']['params']
     else:
-        logger.error('Failed getting results for QID {0}'.format(myADSsetup['qid']))
-        docs = []
-        q_params = None
+        logger.error('Failed getting results for QID {0} from our own API'.format(myADSsetup['qid']))
+        raise RuntimeError(q.text)
 
     if q_params:
         # bigquery
@@ -204,8 +203,8 @@ def get_template_query_results(myADSsetup):
                            headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
 
         if r.status_code != 200:
-            logger.error('Failed getting results for query {0}'.format(myADSsetup['query'][i]))
-            docs = []
+            logger.error('Failed getting results for query {0} from our own API'.format(myADSsetup['query'][i]))
+            raise RuntimeError(r.text)
         else:
             docs = json.loads(r.text)['response']['docs']
             for doc in docs:
