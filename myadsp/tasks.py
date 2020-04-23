@@ -126,6 +126,7 @@ def task_process_myads(message):
                 s['rows'] = 5
             s['fields'] = 'bibcode,title,author_norm,identifier,year,bibstem'
             if s['type'] == 'query':
+                qtype = 'general'
                 try:
                     raw_results = utils.get_query_results(s)
                 except RuntimeError:
@@ -143,6 +144,7 @@ def task_process_myads(message):
                         logger.warning('Maximum number of query retries attempted for user {0}; myADS processing '
                                        'failed due to retrieving query results failures.'.format(userid))
             elif s['type'] == 'template':
+                qtype = s['template']
                 try:
                     raw_results = utils.get_template_query_results(s)
                 except RuntimeError:
@@ -182,7 +184,12 @@ def task_process_myads(message):
                 else:
                     results = r['results']
 
-                payload.append({'name': r['name'], 'query_url': r['query_url'], 'results': results, 'query': r['query']})
+                payload.append({'name': r['name'],
+                                'query_url': r['query_url'],
+                                'results': results,
+                                'query': r['query'],
+                                'qtype': qtype,
+                                'id': s['id']})
         else:
             # wrong frequency for this round of processing
             pass

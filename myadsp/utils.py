@@ -137,9 +137,11 @@ def get_query_results(myADSsetup=None):
             urlparams = dict((k, v) for k, v in urlparams.iteritems() if v is not None)
             query_url = config.get('QUERY_ENDPOINT') % urllib.urlencode(urlparams)
             query = q_params.get('q', None)
+
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
     else:
         # no parameters returned - should this url be something else?
-        query_url = config.get('UI_ENDPOINT')
+        query_url = config.get('UI_ENDPOINT') + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl_noquery'
         query = None
 
     return [{'name': myADSsetup['name'], 'query_url': query_url, 'results': docs, 'query': query}]
@@ -220,7 +222,8 @@ def get_template_query_results(myADSsetup):
                                          headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])
 
-        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/')
+        query_url = query.replace(config.get('API_SOLR_QUERY_ENDPOINT') + '?', config.get('UI_ENDPOINT') + '/search/') \
+                    + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
         payload.append({'name': name[i], 'query_url': query_url, 'query': myADSsetup['query'][i]['q'], 'results': docs})
 
     return payload
