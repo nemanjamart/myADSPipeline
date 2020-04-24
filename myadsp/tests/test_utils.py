@@ -12,7 +12,7 @@ from myadsp.models import Base
 from ..emails import myADSTemplate
 
 payload = [{'name': 'Query 1',
-            'query_url': 'https://path/to/query?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl',
             'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
                          "bibcode":"2012yCat..51392620N",
                          "title":["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
@@ -26,7 +26,7 @@ payload = [{'name': 'Query 1',
            'qtype': 'general',
             'id': 123},
            {'name': 'Query 2',
-            'query_url': 'https://path/to/query?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl',
+            'query_url': 'https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl',
             'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
                          "bibcode": "2012yCat..51392620N",
                          "title": ["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
@@ -145,7 +145,7 @@ class TestmyADSCelery(unittest.TestCase):
         results = utils.get_query_results(myADSsetup)
 
         query_url = self.app._config.get('QUERY_ENDPOINT') % urllib.urlencode({"q": "author:Kurtz", "sort": "score desc"})
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query_url': query_url,
                                     'results': [{"bibcode": "1971JVST....8..324K",
@@ -212,7 +212,7 @@ class TestmyADSCelery(unittest.TestCase):
                          format(urllib.quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                                   'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("score desc, bibcode desc"))
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                              'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
@@ -305,7 +305,7 @@ class TestmyADSCelery(unittest.TestCase):
         query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
                          format(urllib.quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
                                 urllib.quote_plus("entry_date desc, bibcode desc"))
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': 'Test Query - citations (Citations: 161491)',
                                     'query': 'citations(author:Kurtz OR author:"Kurtz, M.")',
                                     'query_url': query_url,
@@ -367,7 +367,7 @@ class TestmyADSCelery(unittest.TestCase):
         query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
                          format(urllib.quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("score desc, bibcode desc"))
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': query_url,
@@ -492,15 +492,15 @@ class TestmyADSCelery(unittest.TestCase):
         query_url1 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
                          format(urllib.quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
                                 urllib.quote_plus("entry_date desc, bibcode desc"))
-        query_url1 = query_url1 + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url1 = query_url1 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         query_url2 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
                          format(urllib.quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 urllib.quote_plus("score desc, bibcode desc"))
-        query_url2 = query_url2 + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url2 = query_url2 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         query_url3 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
                          format(urllib.quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
                                 urllib.quote_plus("score desc, bibcode desc"))
-        query_url3 = query_url3 + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url3 = query_url3 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
                                     'query': 'AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
                                     'query_url': query_url1,
@@ -552,7 +552,7 @@ class TestmyADSCelery(unittest.TestCase):
         formatted_payload = utils.payload_to_plain(payload)
 
         split_payload = formatted_payload.split('\n')
-        self.assertEquals(split_payload[0].strip(), 'Query 1 (https://path/to/query?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl)')
+        self.assertEquals(split_payload[0].strip(), 'Query 1 (https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&utm_medium=email&utm_campaign=type:general&utm_term=123&utm_content=queryurl)')
         self.assertEquals(split_payload[1].strip(), '"VizieR Online Data Catalog: Spectroscopy of M81 globular ' +
                                                     'clusters," Nantais, J and Huchra, J (2012yCat..51392620N)')
 
@@ -563,7 +563,7 @@ class TestmyADSCelery(unittest.TestCase):
         split_payload = formatted_payload.split('\n')
         self.assertIn(u'templateColumnContainer"', split_payload[69])
         self.assertEquals(split_payload[74].strip(),
-                          u'<h3><a href="https://path/to/query?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
+                          u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
         self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[78])
 
@@ -573,7 +573,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         self.assertIn(u'class="leftColumnContent"', split_payload[72])
         self.assertEquals(split_payload[74].strip(),
-                          u'<h3><a href="https://path/to/query?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
+                          u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
         self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[77])
 
