@@ -6,35 +6,39 @@ import urllib
 import json
 import datetime
 
-import adsputils as utils
+import adsputils
 from myadsp import app, utils
 from myadsp.models import Base
 from ..emails import myADSTemplate
 
 payload = [{'name': 'Query 1',
-                    'query_url': 'https://path/to/query',
-                    'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
-                                 "bibcode":"2012yCat..51392620N",
-                                 "title":["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
-                                 "year": "2012",
-                                 "bibstem": ["yCat"]},
-                                {"author_norm": ["Huchra, J", "Macri, L"],
-                                 "bibcode":"2012ApJS..199...26H",
-                                 "title":["The 2MASS Redshift Survey Description and Data Release"],
-                                 "year": "2012",
-                                 "bibstem": ["ApJS"]}]},
+            'query_url': 'https://path/to/query?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl',
+            'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
+                         "bibcode":"2012yCat..51392620N",
+                         "title":["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
+                         "year": "2012",
+                         "bibstem": ["yCat"]},
+                        {"author_norm": ["Huchra, J", "Macri, L"],
+                         "bibcode":"2012ApJS..199...26H",
+                         "title":["The 2MASS Redshift Survey Description and Data Release"],
+                         "year": "2012",
+                         "bibstem": ["ApJS"]}],
+           'qtype': 'general',
+            'id': 123},
            {'name': 'Query 2',
-                    'query_url': 'https://path/to/query',
-                    'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
-                                 "bibcode": "2012yCat..51392620N",
-                                 "title": ["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
-                                 "year": "2012",
-                                 "bibstem": ["yCat"]},
-                                {"author_norm": ["Huchra, J", "Macri, L"],
-                                 "bibcode": "2012ApJS..199...26H",
-                                 "title": ["The 2MASS Redshift Survey Description and Data Release"],
-                                 "year": "2012",
-                                 "bibstem": ["ApJS"]}]}]
+            'query_url': 'https://path/to/query?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl',
+            'results': [{"author_norm": ["Nantais, J", "Huchra, J"],
+                         "bibcode": "2012yCat..51392620N",
+                         "title": ["VizieR Online Data Catalog: Spectroscopy of M81 globular clusters"],
+                         "year": "2012",
+                         "bibstem": ["yCat"]},
+                        {"author_norm": ["Huchra, J", "Macri, L"],
+                         "bibcode": "2012ApJS..199...26H",
+                         "title": ["The 2MASS Redshift Survey Description and Data Release"],
+                         "year": "2012",
+                         "bibstem": ["ApJS"]}],
+            'qtype': 'arXiv',
+            'id': 456}]
 
 
 class TestmyADSCelery(unittest.TestCase):
@@ -140,10 +144,10 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_query_results(myADSsetup)
 
+        query_url = self.app._config.get('QUERY_ENDPOINT') % urllib.urlencode({"q": "author:Kurtz", "sort": "score desc"})
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
-                                    'query_url': self.app._config.get('QUERY_ENDPOINT') %
-                                    urllib.urlencode({"q": "author:Kurtz",
-                                                      "sort": "score desc"}),
+                                    'query_url': query_url,
                                     'results': [{"bibcode": "1971JVST....8..324K",
                                                  "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  "author_norm": ["Kurtz, J"]}],
@@ -153,9 +157,9 @@ class TestmyADSCelery(unittest.TestCase):
     @httpretty.activate
     def test_get_template_query_results(self):
         # test arxiv query
-        start = (utils.get_date() - datetime.timedelta(days=25)).date()
-        end = utils.get_date().date()
-        start_year = (utils.get_date() - datetime.timedelta(days=180)).year
+        start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
+        end = adsputils.get_date().date()
+        start_year = (adsputils.get_date() - datetime.timedelta(days=180)).year
         myADSsetup = {'name': 'Test Query - arxiv',
                       'qid': 1,
                       'active': True,
@@ -171,9 +175,9 @@ class TestmyADSCelery(unittest.TestCase):
                       'fields': 'bibcode,title,author_norm,identifier',
                       'rows': 2000}
 
-        start = utils.get_date().date()
-        end = utils.get_date().date()
-        start_year = (utils.get_date() - datetime.timedelta(days=180)).year
+        start = adsputils.get_date().date()
+        end = adsputils.get_date().date()
+        start_year = (adsputils.get_date() - datetime.timedelta(days=180)).year
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                          format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
@@ -202,15 +206,17 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
-        start = (utils.get_date() - datetime.timedelta(days=25)).date()
-        end = utils.get_date().date()
+        start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
+        end = adsputils.get_date().date()
+        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'. \
+                         format(urllib.quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
+                                                  'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                urllib.quote_plus("score desc, bibcode desc"))
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
                                              'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
-                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
-                                                  'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
-                                urllib.quote_plus("score desc, bibcode desc")),
+                                    'query_url': query_url,
                                     'results': [{u'arxiv_id': u'arXiv:1234:5678',
                                                  u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -296,11 +302,13 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
+        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+                         format(urllib.quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
+                                urllib.quote_plus("entry_date desc, bibcode desc"))
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
         self.assertEqual(results, [{'name': 'Test Query - citations (Citations: 161491)',
                                     'query': 'citations(author:Kurtz OR author:"Kurtz, M.")',
-                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
-                                urllib.quote_plus("entry_date desc, bibcode desc")),
+                                    'query_url': query_url,
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -356,11 +364,13 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
+        query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+                         format(urllib.quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                urllib.quote_plus("score desc, bibcode desc"))
+        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
-                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
-                                urllib.quote_plus("score desc, bibcode desc")),
+                                    'query_url': query_url,
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -479,11 +489,21 @@ class TestmyADSCelery(unittest.TestCase):
         )
 
         results = utils.get_template_query_results(myADSsetup)
+        query_url1 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+                         format(urllib.quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                urllib.quote_plus("entry_date desc, bibcode desc"))
+        query_url1 = query_url1 + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url2 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+                         format(urllib.quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
+                                urllib.quote_plus("score desc, bibcode desc"))
+        query_url2 = query_url2 + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
+        query_url3 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
+                         format(urllib.quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
+                                urllib.quote_plus("score desc, bibcode desc"))
+        query_url3 = query_url3 + '?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl'
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
                                     'query': 'AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
-                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
-                                urllib.quote_plus("entry_date desc, bibcode desc")),
+                                    'query_url': query_url1,
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  u"author_norm": [u"Kurtz, J"],
@@ -492,9 +512,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"bibstem": [u"JVST"]}]},
                                    {'name': 'Test Query - keywords - Most Popular',
                                     'query': 'trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))',
-                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
-                                urllib.quote_plus("score desc, bibcode desc")),
+                                    'query_url': query_url2,
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -504,9 +522,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                  u"bibstem": [u"JVST"]}]},
                                    {'name': 'Test Query - keywords - Most Cited',
                                     'query': 'useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))',
-                                    'query_url': 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.
-                         format(urllib.quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
-                                urllib.quote_plus("score desc, bibcode desc")),
+                                    'query_url': query_url3,
                                     'results': [{u"bibcode": u"1971JVST....8..324K",
                                                  u"title": [
                                                      u"High-Capacity Lead Tin Barrel Dome Production Evaporator"],
@@ -536,7 +552,7 @@ class TestmyADSCelery(unittest.TestCase):
         formatted_payload = utils.payload_to_plain(payload)
 
         split_payload = formatted_payload.split('\n')
-        self.assertEquals(split_payload[0].strip(), 'Query 1 (https://path/to/query)')
+        self.assertEquals(split_payload[0].strip(), 'Query 1 (https://path/to/query?utm_source=myads&utm_medium=email&utm_campaign=type:%s&utm_term=%s&utm_content=queryurl)')
         self.assertEquals(split_payload[1].strip(), '"VizieR Online Data Catalog: Spectroscopy of M81 globular ' +
                                                     'clusters," Nantais, J and Huchra, J (2012yCat..51392620N)')
 
@@ -547,9 +563,9 @@ class TestmyADSCelery(unittest.TestCase):
         split_payload = formatted_payload.split('\n')
         self.assertIn(u'templateColumnContainer"', split_payload[69])
         self.assertEquals(split_payload[74].strip(),
-                          u'<h3><a href="https://path/to/query" title="" style="color: #000000; ' +
+                          u'<h3><a href="https://path/to/query?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=rank:1"', split_payload[78])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[78])
 
         formatted_payload = utils.payload_to_html(payload, col=2)
 
@@ -557,9 +573,9 @@ class TestmyADSCelery(unittest.TestCase):
 
         self.assertIn(u'class="leftColumnContent"', split_payload[72])
         self.assertEquals(split_payload[74].strip(),
-                          u'<h3><a href="https://path/to/query" title="" style="color: #000000; ' +
+                          u'<h3><a href="https://path/to/query?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
-        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=rank:1"', split_payload[77])
+        self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[77])
 
         formatted_payload = utils.payload_to_html(payload, col=3)
         self.assertIsNone(formatted_payload)

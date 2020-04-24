@@ -167,20 +167,37 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
 
             return None
 
-    # check that the astronomy records have made it into solr
-    astro_records = []
-    try:
-        with open(astro_file, 'r') as flist:
-            for l in flist.readlines():
-                # sample line: 2019A&A...632A..94J     K58-37447
-                astro_records.append(l.split()[0])
-    except IOError:
-        logger.warning('Astronomy ingest file not found. Exiting.')
+    # make sure the ingest file exists and has enough bibcodes
+    total_delay = 0
+    while total_delay < sleep_timeout:
+        astro_records = []
+        try:
+            with open(astro_file, 'r') as flist:
+                for l in flist.readlines():
+                    # sample line: 2019A&A...632A..94J     K58-37447
+                    astro_records.append(l.split()[0])
+        except IOError:
+            time.sleep(sleep_delay)
+            total_delay += sleep_delay
+            logger.warning('Error opening astronomy ingest file. Sleeping {0}s, for a total delay of {1}s'.
+                           format(sleep_delay, total_delay))
+            continue
+
+        if len(astro_records) < 10:
+            time.sleep(sleep_delay)
+            total_delay += sleep_delay
+            logger.warning('Astronomy ingest file too small - ingest not complete. Sleeping {0}s, for a total delay of {1}s'.
+                           format(sleep_delay, total_delay))
+            continue
+        else:
+            break
+    else:
         return None
 
     # get several randomly selected bibcodes, in case one had ingest issues
     sample = random.sample(astro_records, config.get('ASTRO_SAMPLE_SIZE'))
 
+    # check that the astronomy records have made it into solr
     total_delay = 0
     while total_delay < sleep_timeout:
         num_sampled = 0
