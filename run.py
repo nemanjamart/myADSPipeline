@@ -12,7 +12,10 @@ import datetime
 import gzip
 import random
 import json
-import urllib
+try:
+    from urllib.parse import quote_plus
+except ImportError:
+    from urlparse import quote_plus
 from requests.packages.urllib3 import exceptions
 warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
 
@@ -115,7 +118,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
             start_date = (get_date() - datetime.timedelta(days=1)).date()
         beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
         q = app.client.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
-                                              urllib.quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
+                                              quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
                                                                 'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
                            headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))

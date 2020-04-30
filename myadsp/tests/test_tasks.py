@@ -4,6 +4,10 @@ import os
 import json
 import httpretty
 from mock import patch
+try:
+    from urllib.parse import quote_plus
+except ImportError:
+    from urllib import quote_plus
 
 import adsputils
 from myadsp import app, utils, tasks
@@ -122,33 +126,43 @@ class TestmyADSCelery(unittest.TestCase):
             httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu1', 'bibcode,title,author_norm', 10, 'bibcode+desc'),
             content_type='application/json',
             status=200,
-            body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',
-                                                      u'title': [u'Gravitational wave signatures from an extended ' +
-                                                                 u'inert doublet dark matter model'],
-                                                      u'author_norm': [u'Paul, A', u'Banerjee, B', u'Majumdar, D'],
-                                                      u"identifier": [u"2019arXiv190800829P", u"arXiv:1908.00829"],
-                                                      u"year": u"2019",
-                                                      u"bibstem": [u"arXiv"]},
-                                                     {u'bibcode': u'2019arXiv190800678L',
-                                                      u'title': [u'Prospects for Gravitational Wave Measurement ' +
-                                                                 u'of ZTFJ1539+5027'],
-                                                      u'author_norm': [u'Littenberg, T', u'Cornish, N'],
-                                                      u"identifier": [u"2019arXiv190800678L", u"arXiv:1908.00678"],
-                                                      u"year": u"2019",
-                                                      u"bibstem": [u"arXiv"]}],
-                                           u'numFound': 2,
-                                           u'start': 0},
-                            u'responseHeader': {u'QTime': 5,
-                                                u'params': {u'fl': u'bibcode,title,author_norm,identifier,year,bibstem',
-                                                            u'q': u'title:"gravity waves" ' +
-                                                                  u'entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"',
-                                                            u'rows': u'2',
-                                                            u'start': u'0',
-                                                            u'wt': u'json',
-                                                            u'x-amzn-trace-id':
-                                                                u'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
-                                                u'status': 0}})
+            body=json.dumps({'response': {'docs': [{'bibcode': '2019arXiv190800829P',
+                                                      'title': ['Gravitational wave signatures from an extended ' +
+                                                                 'inert doublet dark matter model'],
+                                                      'author_norm': ['Paul, A', 'Banerjee, B', 'Majumdar, D'],
+                                                      "identifier": ["2019arXiv190800829P", "arXiv:1908.00829"],
+                                                      "year": "2019",
+                                                      "bibstem": ["arXiv"]},
+                                                     {'bibcode': '2019arXiv190800678L',
+                                                      'title': ['Prospects for Gravitational Wave Measurement ' +
+                                                                 'of ZTFJ1539+5027'],
+                                                      'author_norm': ['Littenberg, T', 'Cornish, N'],
+                                                      "identifier": ["2019arXiv190800678L", "arXiv:1908.00678"],
+                                                      "year": "2019",
+                                                      "bibstem": ["arXiv"]}],
+                                           'numFound': 2,
+                                           'start': 0},
+                            'responseHeader': {'QTime': 5,
+                                                'params': {'fl': 'bibcode,title,author_norm,identifier,year,bibstem',
+                                                            'q': 'title:"gravity waves" ' +
+                                                                  'entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"',
+                                                            'rows': '2',
+                                                            'start': '0',
+                                                            'wt': 'json',
+                                                            'x-amzn-trace-id':
+                                                                'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
+                                                'status': 0}})
         )
+
+        httpretty.register_uri(httpretty.GET,
+                               self.app.conf['API_SOLR_QUERY_ENDPOINT'] +
+                               '?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(query=quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]'),
+                                                                                       sort=quote_plus('score desc, bibcode desc'),
+                                                                                       fields='bibcode,title,author_norm,identifier,year,bibstem',
+                                                                                       rows=5),
+                               content_type='application/json',
+                               status=401
+                               )
 
         with patch.object(self.app, 'get_recent_results') as get_recent_results, \
             patch.object(utils, 'get_user_email') as get_user_email, \
@@ -168,9 +182,8 @@ class TestmyADSCelery(unittest.TestCase):
 
             httpretty.register_uri(
                 httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={0}&sort={1}&fl={2}&rows={3}'.
-                               format(
-                    'bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
-                    'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
+                               format('bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                      'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
                 content_type='application/json',
                 status=200,
                 body=json.dumps({"responseHeader": {"status": 0,
@@ -220,9 +233,8 @@ class TestmyADSCelery(unittest.TestCase):
             )
             httpretty.register_uri(
                 httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={0}&sort={1}&fl={2}&rows={3}'.
-                               format(
-                    'bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
-                    'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
+                               format('bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                      'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
                 content_type='application/json',
                 status=200,
                 body=json.dumps({"responseHeader": {"status": 0,
