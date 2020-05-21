@@ -17,13 +17,20 @@ try:
 except ImportError:
     from urlparse import quote_plus
 from requests.packages.urllib3 import exceptions
+
+# ============================= INITIALIZATION ==================================== #
+
+proj_home = os.path.realpath(os.path.dirname(__file__))
+config = load_config(proj_home=proj_home)
+logger = setup_logging('run.py', proj_home=proj_home,
+                        level=config.get('LOGGING_LEVEL', 'INFO'),
+                        attach_stdout=config.get('LOG_STDOUT', False))
+
 warnings.simplefilter('ignore', exceptions.InsecurePlatformWarning)
 
 app = tasks.app
-logger = setup_logging('run.py')
-config = {}
-config.update(load_config())
 
+# =============================== FUNCTIONS ======================================= #
 
 def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     """

@@ -11,12 +11,17 @@ import os
 import json
 from sqlalchemy.orm import exc as ormexc
 
-app = app_module.myADSCelery('myADS-pipeline', proj_home=os.path.realpath(os.path.join(os.path.dirname(__file__), '../')))
+# ============================= INITIALIZATION ==================================== #
+
+proj_home = os.path.realpath(os.path.join(os.path.dirname(__file__), '../'))
+app = app_module.myADSCelery('myADS-pipeline', proj_home=proj_home, local_config=globals().get('local_config', {}))
+logger = app.logger
+
 app.conf.CELERY_QUEUES = (
     Queue('process', app.exchange, routing_key='process'),
 )
-logger = app.logger
 
+# ============================= TASKS ============================================= #
 
 @app.task(queue='process')
 def task_process_myads(message):

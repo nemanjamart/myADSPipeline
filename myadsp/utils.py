@@ -17,11 +17,18 @@ import os
 from jinja2 import Environment, PackageLoader, select_autoescape
 import datetime
 
-app = app_module.myADSCelery('myADS-pipeline', proj_home=os.path.realpath(os.path.join(os.path.dirname(__file__), '../')))
+# ============================= INITIALIZATION ==================================== #
+# - Use app logger:
+#import logging
+#logger = logging.getLogger('myADS-pipeline')
+# - Or individual logger for this file:
+proj_home = os.path.realpath(os.path.join(os.path.dirname(__file__), '../'))
+config = load_config(proj_home=proj_home)
+logger = setup_logging(__name__, proj_home=proj_home,
+                        level=config.get('LOGGING_LEVEL', 'INFO'),
+                        attach_stdout=config.get('LOG_STDOUT', False))
 
-logger = setup_logging('myads_utils')
-config = {}
-config.update(load_config())
+app = app_module.myADSCelery('myADS-pipeline', proj_home=proj_home)
 
 env = Environment(
     loader=PackageLoader('myadsp', 'templates'),
@@ -29,6 +36,7 @@ env = Environment(
                                  default_for_string=True)
 )
 
+# =============================== FUNCTIONS ======================================= #
 
 def send_email(email_addr='', email_template=Email, payload_plain=None, payload_html=None, subject=None):
     """
