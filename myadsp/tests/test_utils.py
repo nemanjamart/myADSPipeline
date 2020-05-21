@@ -1,8 +1,13 @@
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import os
 import httpretty
 from mock import patch
-import urllib
+try:
+    from urllib.parse import urlencode, quote_plus
+except ImportError:
+    from urllib import urlencode, quote_plus
 import json
 import datetime
 
@@ -110,7 +115,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         email = utils.get_user_email(userid=user_id)
 
-        self.assertEquals(email, 'test@test.com')
+        self.assertEqual(email, 'test@test.com')
 
     @httpretty.activate
     def test_get_query_results(self):
@@ -144,7 +149,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_query_results(myADSsetup)
 
-        query_url = self.app._config.get('QUERY_ENDPOINT') % urllib.urlencode({"q": "author:Kurtz", "sort": "score desc"})
+        query_url = self.app._config.get('QUERY_ENDPOINT') % urlencode({"q": "author:Kurtz", "sort": "score desc"})
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query_url': query_url,
@@ -181,9 +186,9 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                          format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                                query=urllib.quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) '
-                                                        'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
-                                sort=urllib.quote_plus('score desc'),
+                                query=quote_plus('bibstem:arxiv ((arxiv_class:astro-ph.*) OR (AGN)) '
+                                                 'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                sort=quote_plus('score desc'),
                                 fields='bibcode,title,author_norm,identifier',
                                 rows=2000),
             content_type='application/json',
@@ -209,9 +214,9 @@ class TestmyADSCelery(unittest.TestCase):
         start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
         end = adsputils.get_date().date()
         query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'. \
-                         format(urllib.quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
-                                                  'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
-                                urllib.quote_plus("score desc, bibcode desc"))
+                         format(quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
+                                           'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                quote_plus("score desc, bibcode desc"))
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'bibstem:arxiv (arxiv_class:(astro-ph.*) (AGN)) '
@@ -240,9 +245,9 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus(
+                       query=quote_plus(
                            'citations(author:Kurtz OR author:"Kurtz, M.")'),
-                       sort=urllib.quote_plus('entry_date desc, bibcode desc'),
+                       sort=quote_plus('entry_date desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
@@ -279,7 +284,7 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&rows=1&stats=true&stats.field=citation_count'. \
                                format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                                      query=urllib.quote_plus('author:Kurtz')),
+                                      query=quote_plus('author:Kurtz')),
             content_type='application/json',
             status=200,
             body=json.dumps({"response": {"numFound": 1,
@@ -303,8 +308,8 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
-                         format(urllib.quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
-                                urllib.quote_plus("entry_date desc, bibcode desc"))
+                         format(quote_plus('citations(author:Kurtz OR author:"Kurtz, M.")'),
+                                quote_plus("entry_date desc, bibcode desc"))
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': 'Test Query - citations (Citations: 161491)',
                                     'query': 'citations(author:Kurtz OR author:"Kurtz, M.")',
@@ -335,9 +340,9 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus(
+                       query=quote_plus(
                            'author:Kurtz'),
-                       sort=urllib.quote_plus('score desc, bibcode desc'),
+                       sort=quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
@@ -365,8 +370,8 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         query_url = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
-                         format(urllib.quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
-                                urllib.quote_plus("score desc, bibcode desc"))
+                         format(quote_plus('author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                quote_plus("score desc, bibcode desc"))
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
@@ -402,8 +407,8 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus('arxiv_class:(astro-ph.* OR physics.space-ph) AGN'),
-                       sort=urllib.quote_plus('entry_date desc, bibcode desc'),
+                       query=quote_plus('arxiv_class:(astro-ph.* OR physics.space-ph) AGN'),
+                       sort=quote_plus('entry_date desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
@@ -433,8 +438,8 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
-                       sort=urllib.quote_plus('score desc, bibcode desc'),
+                       query=quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
+                       sort=quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
@@ -462,8 +467,8 @@ class TestmyADSCelery(unittest.TestCase):
         httpretty.register_uri(
             httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
                 format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
-                       query=urllib.quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
-                       sort=urllib.quote_plus('score desc, bibcode desc'),
+                       query=quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
+                       sort=quote_plus('score desc, bibcode desc'),
                        fields='bibcode,title,author_norm,identifier',
                        rows=5),
             content_type='application/json',
@@ -490,16 +495,16 @@ class TestmyADSCelery(unittest.TestCase):
 
         results = utils.get_template_query_results(myADSsetup)
         query_url1 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
-                         format(urllib.quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
-                                urllib.quote_plus("entry_date desc, bibcode desc"))
+                         format(quote_plus('AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                quote_plus("entry_date desc, bibcode desc"))
         query_url1 = query_url1 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         query_url2 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
-                         format(urllib.quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
-                                urllib.quote_plus("score desc, bibcode desc"))
+                         format(quote_plus('trending(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
+                                quote_plus("score desc, bibcode desc"))
         query_url2 = query_url2 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         query_url3 = 'https://ui.adsabs.harvard.edu/search/q={0}&sort={1}'.\
-                         format(urllib.quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
-                                urllib.quote_plus("score desc, bibcode desc"))
+                         format(quote_plus('useful(AGN arxiv_class:(astro-ph.* OR physics.space-ph))'),
+                                quote_plus("score desc, bibcode desc"))
         query_url3 = query_url3 + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': 'Test Query - keywords - Recent Papers',
                                     'query': 'AGN arxiv_class:(astro-ph.* OR physics.space-ph) entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
@@ -538,22 +543,22 @@ class TestmyADSCelery(unittest.TestCase):
                         "author_norm": ["Huchra, J", "Macri, L", "Masters, K", "Jarrett, T"]}
 
         first_author = utils._get_first_author_formatted(results_dict, author_field='author_norm')
-        self.assertEquals(first_author, 'Huchra, J; Macri, L; Masters, K and 1 more')
+        self.assertEqual(first_author, 'Huchra, J; Macri, L; Masters, K and 1 more')
 
         results_dict = {"bibcode": "2012ApJS..199...26H",
                         "title": ["The 2MASS Redshift Survey: Description and Data Release"],
                         "author_norm": ["Huchra, J"]}
 
         first_author = utils._get_first_author_formatted(results_dict, author_field='author_norm')
-        self.assertEquals(first_author, 'Huchra, J')
+        self.assertEqual(first_author, 'Huchra, J')
 
     def test_payload_to_plain(self):
 
         formatted_payload = utils.payload_to_plain(payload)
 
         split_payload = formatted_payload.split('\n')
-        self.assertEquals(split_payload[0].strip(), 'Query 1 (https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&utm_medium=email&utm_campaign=type:general&utm_term=123&utm_content=queryurl)')
-        self.assertEquals(split_payload[1].strip(), '"VizieR Online Data Catalog: Spectroscopy of M81 globular ' +
+        self.assertEqual(split_payload[0].strip(), 'Query 1 (https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&utm_medium=email&utm_campaign=type:general&utm_term=123&utm_content=queryurl)')
+        self.assertEqual(split_payload[1].strip(), '"VizieR Online Data Catalog: Spectroscopy of M81 globular ' +
                                                     'clusters," Nantais, J and Huchra, J (2012yCat..51392620N)')
 
     def test_payload_to_html(self):
@@ -562,7 +567,7 @@ class TestmyADSCelery(unittest.TestCase):
 
         split_payload = formatted_payload.split('\n')
         self.assertIn(u'templateColumnContainer"', split_payload[69])
-        self.assertEquals(split_payload[74].strip(),
+        self.assertEqual(split_payload[74].strip(),
                           u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
         self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[78])
@@ -572,7 +577,7 @@ class TestmyADSCelery(unittest.TestCase):
         split_payload = formatted_payload.split('\n')
 
         self.assertIn(u'class="leftColumnContent"', split_payload[72])
-        self.assertEquals(split_payload[74].strip(),
+        self.assertEqual(split_payload[74].strip(),
                           u'<h3><a href="https://ui.adsabs.harvard.edu/search/q=bibstem%3Aarxiv?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=queryurl" title="" style="color: #000000; ' +
                           u'font-weight: bold;">Query 1</a></h3>')
         self.assertIn(u'href="https://ui.adsabs.harvard.edu/abs/2012yCat..51392620N/abstract?utm_source=myads&amp;utm_medium=email&amp;utm_campaign=type:general&amp;utm_term=123&amp;utm_content=rank:1"', split_payload[77])

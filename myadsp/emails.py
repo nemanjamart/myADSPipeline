@@ -1,5 +1,6 @@
 """email templates"""
 
+from builtins import object
 class Email(object):
     """
     Data structure that contains email content data

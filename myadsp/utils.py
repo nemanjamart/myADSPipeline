@@ -1,3 +1,6 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 from adsputils import get_date, setup_logging, load_config
 from .emails import Email
 from myadsp import app as app_module
@@ -5,7 +8,10 @@ from myadsp import app as app_module
 import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import urllib
+try:
+    from urllib.parse import urlencode, quote_plus
+except ImportError:
+    from urllib import urlencode, quote_plus
 import json
 import os
 from jinja2 import Environment, PackageLoader, select_autoescape
@@ -113,7 +119,7 @@ def get_query_results(myADSsetup=None):
     else:
         sort = 'score desc, bibcode desc'
     q = app.client.get(config.get('API_VAULT_EXECUTE_QUERY') %
-                       (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows'], urllib.quote_plus(sort)),
+                       (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows'], quote_plus(sort)),
                        headers={'Accept': 'application/json',
                                 'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
     if q.status_code == 200:
@@ -134,8 +140,8 @@ def get_query_results(myADSsetup=None):
                          'fq': q_params.get('fq', None),
                          'fq_database': q_params.get('fq_database', None),
                          'sort': q_params.get('sort', None)}
-            urlparams = dict((k, v) for k, v in urlparams.iteritems() if v is not None)
-            query_url = config.get('QUERY_ENDPOINT') % urllib.urlencode(urlparams)
+            urlparams = dict((k, v) for k, v in urlparams.items() if v is not None)
+            query_url = config.get('QUERY_ENDPOINT') % urlencode(urlparams)
             query = q_params.get('q', None)
 
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
@@ -196,8 +202,9 @@ def get_template_query_results(myADSsetup):
     for i in range(len(myADSsetup['query'])):
         query = '{endpoint}?q={query}&sort={sort}'. \
                          format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
-                                query=urllib.quote_plus(myADSsetup['query'][i]['q']),
-                                sort=urllib.quote_plus(myADSsetup['query'][i]['sort']))
+                                query=quote_plus(myADSsetup['query'][i]['q']),
+                                sort=quote_plus(myADSsetup['query'][i]['sort']))
+
         r = app.client.get('{query_url}&fl={fields}&rows={rows}'.
                            format(query_url=query,
                                   fields=myADSsetup['fields'],
@@ -217,7 +224,7 @@ def get_template_query_results(myADSsetup):
                 # get the number of citations
                 cites_query = '{endpoint}?q={query}&rows=1&stats=true&stats.field=citation_count'. \
                                format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
-                                      query=urllib.quote_plus(myADSsetup['data']))
+                                      query=quote_plus(myADSsetup['data']))
                 cites_r = app.client.get(cites_query,
                                          headers={'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
                 name[i] = name[i] % int(cites_r.json()['stats']['stats_fields']['citation_count']['sum'])

@@ -1,6 +1,5 @@
-git+https://github.com/adsabs/ADSPipelineUtils.git@v1.2.1
+git+https://github.com/adsabs/ADSPipelineUtils.git@v1.2.3
 git+https://github.com/adsabs/adsabs-pyingest.git@v1.0.7
 alembic==0.9.1
 psycopg2==2.8.3
-Jinja2==2.10.1
-requests==2.19.1
+Jinja2==2.11.2
