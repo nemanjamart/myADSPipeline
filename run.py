@@ -1,7 +1,6 @@
 from adsputils import setup_logging, get_date, load_config
 from myadsp import tasks, utils
 from myadsp.models import KeyValue
-import pyingest.parsers.arxiv as arxiv
 
 import os
 import time
@@ -70,52 +69,32 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         except ValueError:
             continue
 
-    # get the most recent record, convert to a filename
-    last_file = config.get('ARXIV_INCOMING_ABS_DIR') + '/' + last_record
-
-    arxiv_parser = arxiv.ArxivParser()
-    try:
-        with open(last_file, 'rU') as fp:
-            try:
-                arxiv_record = arxiv_parser.parse(fp)
-            except Exception:
-                # could also try to parse another record instead of failing
-                logger.exception('Bad arXiv record: {0}'.format(last_file))
-                return None
-    except IOError:
-        logger.warning('Individual arXiv ingest file not found. Exiting.')
-        return None
-
-    try:
-        last_bibc = arxiv_record.get('bibcode')
-    except Exception:
-        # could also try to parse another record instead of failing
-        logger.exception('No bibcode found in arXiv record: {0}'.format(arxiv_record))
-        return None
+    # get most recent arXiv id to test ingest later
+    last_id = '.'.join(last_record.split('/')[-2:])
 
     total_delay = 0
     while total_delay < sleep_timeout:
         total_delay += sleep_delay
-        r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_bibc),
+        r = app.client.get('{0}?q=identifier:{1}&fl=bibcode,identifier,entry_date'.format(config.get('API_SOLR_QUERY_ENDPOINT'), last_id),
                            headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         if r.status_code != 200:
             time.sleep(sleep_delay)
-            logger.error('Error retrieving bibcode {0} from Solr ({1} {2}), retrying'.
-                         format(last_bibc, r.status_code, r.text))
+            logger.error('Error retrieving record for {0} from Solr ({1} {2}), retrying'.
+                         format(last_id, r.status_code, r.text))
             continue
 
         numfound = r.json()['response']['numFound']
         if numfound == 0:
             # nothing found, try again after a sleep
             time.sleep(sleep_delay)
-            logger.info('arXiv ingest not complete (test arXiv bibcode: {0}). Sleeping {1}s, for a total delay of {2}s.'
-                        .format(last_bibc, sleep_delay, total_delay))
+            logger.info('arXiv ingest not complete (test arXiv id: {0}). Sleeping {1}s, for a total delay of {2}s.'
+                        .format(last_id, sleep_delay, total_delay))
             continue
         if numfound > 1:
             # returning this as true for now, since technically something was found
-            logger.error('Too many records returned for bibcode {0}'.format(last_bibc))
+            logger.error('Too many records returned for id {0}'.format(last_id))
 
-        logger.info('Numfound: {0} for test bibcode {1}. Response: {2}. URL: {3}'.format(numfound, last_bibc,
+        logger.info('Numfound: {0} for test id {1}. Response: {2}. URL: {3}'.format(numfound, last_id,
                                                                                          json.dumps(r.json()), r.url))
 
         # check number of bibcodes from ingest
@@ -130,7 +109,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
                            headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 
-        return last_bibc
+        return last_id
 
     logger.warning('arXiv ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
 
@@ -406,6 +385,13 @@ if __name__ == '__main__':
                         default=False,
                         help='Force processing even if already ran today')
 
+    parser.add_argumen('--wait',
+                       dest='wait_send',
+                       action='store',
+                       type=int,
+                       default=0
+                       help='Wait these many seconds after ingest to allow SOLR searchers to be in sync')
+
     args = parser.parse_args()
 
     if args.user_ids:
@@ -415,34 +401,42 @@ if __name__ == '__main__':
         args.user_emails = [x.strip() for x in args.user_emails.split(',')]
 
     if args.daily_update:
+        arxiv_complete = False
         try:
             arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         except Exception as e:
-            logger.warning('arXiv ingest code failed with an exception: {0}'.format(e))
-            arxiv_complete = None
+            logger.warning('arXiv ingest: code failed with an exception: {0}'.format(e))
         if arxiv_complete:
-            logger.info('arXiv ingest complete. Starting myADS processing.')
+            logger.info('arxiv ingest: complete')
+            if args.wait_send:
+                logger.info('arxiv ingest: waiting {0} seconds for all SOLR searchers to sync data'.format(args.wait_send))
+                time.sleep(args.wait_send)
+            logger.info('arxiv ingest: starting processing')
             process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
                           frequency='daily', test_bibcode=arxiv_complete)
         else:
-            logger.warning('arXiv ingest failed.')
+            logger.warning('arXiv ingest: failed.')
             if args.admin_email:
                 msg = utils.send_email(email_addr=args.admin_email,
                                        payload_plain='Error in the arXiv ingest',
                                        payload_html='Error in the arXiv ingest',
                                        subject='arXiv ingest failed')
     if args.weekly_update:
+        astro_complete = False
         try:
             astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
         except Exception as e:
-            logger.warning('Astronomy ingest code failed with an exception: {0}'.format(e))
-            astro_complete = None
+            logger.warning('astro ingest: code failed with an exception: {0}'.format(e))
         if astro_complete:
-            logger.info('Astronomy ingest complete. Starting myADS processing.')
+            logger.info('astro ingest: complete')
+            if args.wait_send:
+                logger.info('astro ingest: waiting {0} seconds for all SOLR searchers to sync data'.format(args.wait_send))
+                time.sleep(args.wait_send)
+            logger.info('astro ingest: starting processing now')
             process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
                           frequency='weekly', test_bibcode=astro_complete)
         else:
-            logger.warning('Astronomy ingest failed.')
+            logger.warning('astro ingest: failed.')
             if args.admin_email:
                 msg = utils.send_email(email_addr=args.admin_email,
                                        payload_plain='Error in the astronomy ingest',

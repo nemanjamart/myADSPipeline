@@ -288,7 +288,7 @@ class TestmyADSCelery(unittest.TestCase):
                 user = session.query(AuthorInfo).filter_by(id=123).first()
                 self.assertEqual(adsputils.get_date().date(), user.last_sent.date())
 
-        msg = {'userid': 123, 'frequency': 'weekly', 'force': False}
+        msg = {'userid': 123, 'frequency': 'daily', 'force': False}
 
         httpretty.register_uri(
             httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu2', 'bibcode,title,author_norm', 10, 'bibcode+desc'),
