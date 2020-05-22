@@ -385,11 +385,11 @@ if __name__ == '__main__':
                         default=False,
                         help='Force processing even if already ran today')
 
-    parser.add_argumen('--wait',
+    parser.add_argument('--wait',
                        dest='wait_send',
                        action='store',
                        type=int,
-                       default=0
+                       default=0,
                        help='Wait these many seconds after ingest to allow SOLR searchers to be in sync')
 
     args = parser.parse_args()
