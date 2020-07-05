@@ -1,26 +1,52 @@
 {% extends "email.html" %}
 {% block payload %}
-<table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateColumns" style="background-color: #FFFFFF; border-top: 1px solid #FFFFFF;border-bottom: 1px solid #CCCCCC; border: 1px solid #BBBBBB;border-collapse: collapse !important;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" id="templateColumns" style="max-width: 512px;">
     <tr>
         <td align="center" valign="top" width="100%" class="templateColumnContainer">
             <table border="0" cellpadding="10" cellspacing="0" width="100%">
                 <tr>
-                    <td valign="top" class="templateColumnContainer">
+                    <td align="justify" valign="top" class="templateColumnContainer">
                         {% for p in payload %}
-                            <h3><a href="{{ p.query_url.format(p.qtype, p.id) }}" title="{{ p.query }}" style="color: #000000; font-weight: bold;">{{ p.name }}</a></h3>
+                            <h3><a href="{{ p.query_url.format(p.qtype, p.id) }}" title="{{ p.query }}" style="text-decoration: underline; color: #000000; font-weight: bold;">{{ p.name }}</a></h3>
                             {% if p.results|length > 0 %}
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
                                 {% for r in p.results %}
-                                    {% if (r.bibstem[0] == 'arXiv') and ('arxiv_id' in r) %}
-                                        <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;"><b><a href="{{ abs_url.format(r.bibcode, p.qtype, p.id, loop.index) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
-                                        <p style="text-indent: 20px;margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=3) }} (<a href="{{ arxiv_url.format(r.bibcode, p.qtype, p.id, loop.index) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ r.arxiv_id }}</a>)</p>
-                                    {% else %}
-                                        <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;"><b><a href="{{ abs_url.format(r.bibcode, p.qtype, p.id, loop.index) }}" style="color: #5081E9;font-weight: normal;text-decoration: underline;">{{ _get_title(r) }}</a></b></p>
-                                        <p style="text-indent: 20px;margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=3) }} ({{ r.bibcode }})</p>
-                                    {% endif %}
+                                    <tr>
+                                        <td align="left" valign="top">
+                                        </td>
+                                        <td align="left" valign="top">
+                                            {% if (r.bibstem[0] == 'arXiv') and ('arxiv_id' in r) %}
+                                                <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">
+                                                <a href="{{ arxiv_url.format(r.bibcode, p.qtype, p.id, loop.index) }}" style="color: #999999;font-weight: normal;text-decoration: none;">{{ r.bibcode }}</a>
+                                                </p>
+                                            {% else %}
+                                                <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px; color: #999999;">
+                                                {{ r.bibcode }}
+                                                </p>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="left" valign="top">
+                                        </td>
+                                        <td align="left" valign="top">
+                                            <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;"><a href="{{ abs_url.format(r.bibcode, p.qtype, p.id, loop.index) }}" style="text-decoration: none; color: #5081E9;font-weight: normal;">{{ _get_title(r) }}</a></p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="left" valign="top">
+                                        </td>
+                                        <td align="left" valign="top">
+                                            <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">{{ _get_first_author_formatted(r, num_authors=1) }}</p>
+                                            <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 9.5px;">&nbsp;</p>
+                                        </td>
+                                    </tr>
                                 {% endfor %}
+                                </table>
                             {% else %}
                                 <p>No new articles found</p>
                             {% endif %}
+                            <p style="margin: 0;margin-block-start: 0;margin-block-end: 0;line-height: 19.5px;">&nbsp;</p>
                         {% endfor %}
                     </td>
                 </tr>

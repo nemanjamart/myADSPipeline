@@ -45,30 +45,36 @@
             </style>
         </head>
         <body>
-            <table border="0" cellpadding="0" cellspacing="0" height="100%" width="100%" id="bodyTable" style="background-color: #E0E0E0;;">
+            <table border="0" cellpadding="0" cellspacing="0" height="100%" width="100%" id="bodyTable" style="background-color: #FFFFFF;">
                 <tr>
                     <td align="center" valign="top">
-                        <table border="0" cellpadding="10" cellspacing="0" width="100%" style="max-width: 800px;" id="emailContainer" >
+                        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 1024px;" id="emailContainer" >
                             <tr>
-                                <td align="center" valign="top" style="font-family:Helvetica;">
-                                    <table border="0" cellpadding="20" cellspacing="0" width="100%" id="emailBody" style="background-color: #ffffff; border: 1px solid #BBBBBB;border-collapse: collapse !important;">
+                                <td align="center" valign="top" style="font-family:Arial;">
+                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" id="emailBody" style="">
                                         <tr>
-                                            <td align="center" valign="top" background="https://ui.adsabs.harvard.edu/styles/img/background.jpg" style="width:100%; background-color: #150E35" >
-                                                <img src="https://ui.adsabs.harvard.edu/styles/img/ads_logo.png" alt="Astrophysics Data System" style="width: 70%; color: #ffffff; font-size: 34px; font-family: Helvetica;"/>
+                                            <td align="center" valign="center" background="https://ui.adsabs.harvard.edu/styles/img/background.jpg" style="width:100%; background-color: #150E35; padding: 10px;" >
+                                                <p><img src="https://ui.adsabs.harvard.edu/styles/img/ads_logo.png" alt="Astrophysics Data System" style="width: 50%; color: #ffffff; font-size: 34px; font-family: Arial;"/></p>
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td align="center" valign="top" style="width:100%; background-color: #ffffff;">
-                                                <h2 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;"> myADS Personal Notification Service </h2>
-                                                <h3 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;"> {{ frequency.capitalize() }} email ({{ date }}) </h3>
+                                            <td align="center" valign="top" style="width:100%;">
+                                                &nbsp;
                                             </td>
                                         </tr>
                                         <tr>
+                                            <td align="center" valign="top" style="width:100%;">
+                                                <h3 style="margin-top: 0;margin-right: 0;margin-bottom: 10px;margin-left: 0;">myADS - {{ frequency.capitalize() }} email ({{ date }})</h3>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td align="center" style="width:100%; font-size: 14px; font-family:Arial">
                                             {% block payload %} {% endblock payload %}
+                                            </td>
                                         </tr>
                                         <tr>
-                                            <td valign="top" align="center" class="footerContent" style="width:100%; font-size: 14px; font-family:Helvetica; color: #606060; text-align: center;">
-                                                <a href="https://ui.adsabs.harvard.edu/" style="color: #606060;">Search ADS</a>&nbsp;&nbsp;&nbsp;<a href="https://ui.adsabs.harvard.edu/user/settings/myads" style="color: #606060;">myADS settings</a>&nbsp;
+                                            <td valign="top" align="center" class="footerContent" style="width:100%; font-size: 14px; font-family:Arial; color: #606060; text-align: center; padding: 10px">
+                                                <a href="https://ui.adsabs.harvard.edu/user/settings/myads" style="text-decoration: underline; color: #606060;">myADS notification settings</a>
                                             </td>
                                         </tr>
                                     </table>
@@ -76,11 +82,11 @@
                             </tr>
                             <tr>
                                 <td align="center" valign="top">
-                                    <table border="0" cellpadding="20" cellspacing="0" width="100%" id="emailFooter" style="color: #999999; font-size: 12px; text-align: center; font-family: Helvetica;">
+                                    <table border="0" cellpadding="10" cellspacing="0" width="100%" id="emailFooter" style="color: #999999; font-size: 12px; text-align: center; font-family: Arial;">
                                         <tr>
                                             <td align="center" valign="top">
                                                 <p> This message was sent to {{ email_address }}. </p>
-                                                <p> &copy; SAO/NASA <a href="https://ui.adsabs.harvard.edu">Astrophysics Data System</a> <br> 60 Garden Street <br> Cambridge, MA, USA</p>
+                                                <p> &copy; SAO/NASA <a href="https://ui.adsabs.harvard.edu" style="text-decoration: underline; color: #999999">Astrophysics Data System</a> <br> 60 Garden Street <br> Cambridge, MA, USA</p>
                                             </td>
                                         </tr>
                                     </table>
