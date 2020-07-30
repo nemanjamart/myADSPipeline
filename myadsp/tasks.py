@@ -195,7 +195,7 @@ def task_process_myads(message):
         email = utils.get_user_email(userid=userid)
 
     if message['frequency'] == 'daily':
-        subject = 'Daily arXiv myADS Notification'
+        subject = 'Daily myADS Notification'
     else:
         subject = 'Weekly myADS Notification'
 
