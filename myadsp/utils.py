@@ -114,53 +114,6 @@ def get_user_email(userid=None):
         return None
 
 
-def get_query_results(myADSsetup=None):
-    """
-    Retrieves results for a stored query
-    :param myADSsetup: dict containing query ID and metadata
-    :return: payload: list of dicts containing query name, query url, raw search results
-    """
-
-    # get the latest results, unless it's not that type of query
-    if myADSsetup['stateful']:
-        sort = 'date desc, bibcode desc'
-    else:
-        sort = 'score desc, bibcode desc'
-    q = app.client.get(config.get('API_VAULT_EXECUTE_QUERY') %
-                       (myADSsetup['qid'], myADSsetup['fields'], myADSsetup['rows'], quote_plus(sort)),
-                       headers={'Accept': 'application/json',
-                                'Authorization': 'Bearer {0}'.format(config.get('API_TOKEN'))})
-    if q.status_code == 200:
-        docs = json.loads(q.text)['response']['docs']
-        q_params = json.loads(q.text)['responseHeader']['params']
-    else:
-        logger.error('Failed getting results for QID {0} from our own API'.format(myADSsetup['qid']))
-        raise RuntimeError(q.text)
-
-    if q_params:
-        # bigquery
-        if q_params.get('fq', None) == u'{!bitset}':
-            query_url = config.get('BIGQUERY_ENDPOINT') % myADSsetup['qid']
-            query = 'bigquery'
-        # regular query
-        else:
-            urlparams = {'q': q_params.get('q', None),
-                         'fq': q_params.get('fq', None),
-                         'fq_database': q_params.get('fq_database', None),
-                         'sort': q_params.get('sort', None)}
-            urlparams = dict((k, v) for k, v in urlparams.items() if v is not None)
-            query_url = config.get('QUERY_ENDPOINT') % urlencode(urlparams)
-            query = q_params.get('q', None)
-
-        query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
-    else:
-        # no parameters returned - should this url be something else?
-        query_url = config.get('UI_ENDPOINT') + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl_noquery'
-        query = None
-
-    return [{'name': myADSsetup['name'], 'query_url': query_url, 'results': docs, 'query': query}]
-
-
 def get_template_query_results(myADSsetup):
     """
     Retrieves results for a templated query
@@ -168,7 +121,7 @@ def get_template_query_results(myADSsetup):
     :return: payload: list of dicts containing query name, query url, raw search results
     """
 
-    if myADSsetup['template'] == 'authors':
+    if myADSsetup['template'] == 'authors' or myADSsetup['template'] is None:
         name = [myADSsetup['name']]
     else:
         name = []
@@ -176,7 +129,8 @@ def get_template_query_results(myADSsetup):
     try:
         setup_query = myADSsetup['query']
         setup_query_q = setup_query[0]['q']
-        setup_query_sort = setup_query[0]['sort']
+        if 'sort' not in setup_query[0]:
+            setup_query[0]['sort'] = 'date desc, bibcode desc'
     except KeyError:
         logger.error('myADS setup provided is missing the query and sort params. Setup: {0}'.format(myADSsetup))
         raise Exception('Query params must be provided')
@@ -208,10 +162,9 @@ def get_template_query_results(myADSsetup):
     payload = []
 
     for i in range(len(myADSsetup['query'])):
-        query = '{endpoint}?q={query}&sort={sort}'. \
+        query = '{endpoint}?{arguments}'. \
                          format(endpoint=config.get('API_SOLR_QUERY_ENDPOINT'),
-                                query=quote_plus(myADSsetup['query'][i]['q']),
-                                sort=quote_plus(myADSsetup['query'][i]['sort']))
+                                arguments=urlencode(myADSsetup['query'][i], doseq=True))
 
         r = app.client.get('{query_url}&fl={fields}&rows={rows}'.
                            format(query_url=query,
