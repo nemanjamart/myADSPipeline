@@ -54,27 +54,10 @@ class TestmyADSCelery(unittest.TestCase):
         assert self.app._config.get('SQLALCHEMY_URL') == self.postgresql_url
         assert self.app.conf.get('SQLALCHEMY_URL') == self.postgresql_url
 
-    @httpretty.activate
-    def test_task_process_myads(self):
-        msg = {'frequency': 'daily'}
-
-        # can't process without a user ID
-        with patch.object(tasks.logger, 'error', return_value=None) as logger:
-            tasks.task_process_myads(msg)
-            logger.assert_called_with(u"No user ID received for {0}".format(msg))
-
-        msg = {'userid': 123}
-
-        # can't process without a frequency
-        with patch.object(tasks.logger, 'error', return_value=None) as logger:
-            tasks.task_process_myads(msg)
-            logger.assert_called_with(u"No frequency received for {0}".format(msg))
-
-        # process a user (the user should get created during the task)
-        msg = {'userid': 123, 'frequency': 'daily'}
-
+    def _httpretty_mock_myads_setup(self, msg):
+        uri = self.app.conf['API_VAULT_MYADS_SETUP'] % msg['userid']
         httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_VAULT_MYADS_SETUP'] % msg['userid'],
+            httpretty.GET, uri,
             content_type='application/json',
             status=200,
             body=json.dumps([{'id': 1,
@@ -83,17 +66,14 @@ class TestmyADSCelery(unittest.TestCase):
                               'active': True,
                               'stateful': True,
                               'frequency': 'daily',
-                              'type': 'query'},
+                              'type': 'query',
+                              'template': None,
+                              'query': [{ 'q': 'title:"gravity waves" ' +
+                                              'entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"',
+                                          'sort': 'score desc, bibcode desc'}]},
                              {'id': 2,
                               'name': 'Query 2',
-                              'qid': '1234567890abcdefghijklmnopqrstu2',
-                              'active': True,
-                              'stateful': False,
-                              'frequency': 'weekly',
-                              'type': 'query'},
-                             {'id': 3,
-                              'name': 'Query 3',
-                              'qid': '1234567890abcdefghijklmnopqrstu3',
+                              'qid': None,
                               'active': True,
                               'stateful': False,
                               'frequency': 'weekly',
@@ -102,8 +82,8 @@ class TestmyADSCelery(unittest.TestCase):
                               'data': {'data': 'author:Kurtz'},
                               'query': [{'q': 'author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
                                         'sort': 'score desc, bibcode desc'}]},
-                             {'id': 4,
-                              'name': 'Query 4',
+                             {'id': 3,
+                              'name': 'Query 3',
                               'qid': None,
                               'active': True,
                               'stateful': True,
@@ -122,8 +102,34 @@ class TestmyADSCelery(unittest.TestCase):
                              ])
         )
 
+
+    @httpretty.activate
+    def test_task_process_myads(self):
+        msg = {'frequency': 'daily'}
+
+        # can't process without a user ID
+        with patch.object(tasks.logger, 'error', return_value=None) as logger:
+            tasks.task_process_myads(msg)
+            logger.assert_called_with(u"No user ID received for {0}".format(msg))
+
+        msg = {'userid': 123}
+        self._httpretty_mock_myads_setup(msg)
+
+        # can't process without a frequency
+        with patch.object(tasks.logger, 'error', return_value=None) as logger:
+            tasks.task_process_myads(msg)
+            logger.assert_called_with(u"No frequency received for {0}".format(msg))
+
+        # process a user (the user should get created during the task)
+        msg = {'userid': 123, 'frequency': 'daily'}
+
+        uri = self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(
+                query=quote_plus('title:"gravity waves" entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"'),
+                sort=quote_plus('score desc, bibcode desc'),
+                fields='bibcode,title,author_norm,identifier,year,bibstem',
+                rows=2000)
         httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu1', 'bibcode,title,author_norm', 10, 'bibcode+desc'),
+            httpretty.GET, uri,
             content_type='application/json',
             status=200,
             body=json.dumps({'response': {'docs': [{'bibcode': '2019arXiv190800829P',
@@ -146,7 +152,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                 'params': {'fl': 'bibcode,title,author_norm,identifier,year,bibstem',
                                                             'q': 'title:"gravity waves" ' +
                                                                   'entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"',
-                                                            'rows': '2',
+                                                            'rows': '2000',
                                                             'start': '0',
                                                             'wt': 'json',
                                                             'x-amzn-trace-id':
@@ -154,12 +160,14 @@ class TestmyADSCelery(unittest.TestCase):
                                                 'status': 0}})
         )
 
+
+        uri = self.app.conf['API_SOLR_QUERY_ENDPOINT']+'?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(
+                   query=quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]'),
+                   sort=quote_plus('score desc, bibcode desc'),
+                   fields='bibcode,title,author_norm,identifier,year,bibstem',
+                   rows=2000)
         httpretty.register_uri(httpretty.GET,
-                               self.app.conf['API_SOLR_QUERY_ENDPOINT'] +
-                               '?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(query=quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]'),
-                                                                                       sort=quote_plus('score desc, bibcode desc'),
-                                                                                       fields='bibcode,title,author_norm,identifier,year,bibstem',
-                                                                                       rows=5),
+                               uri,
                                content_type='application/json',
                                status=401
                                )
@@ -180,10 +188,17 @@ class TestmyADSCelery(unittest.TestCase):
             tasks.task_process_myads(msg)
             self.assertTrue(rerun_task.called)
 
+            # Reset httpretty, otherwise there will be two identical registered
+            # URIs except that one returns 401 and the other 200
+            httpretty.reset()
+            self._httpretty_mock_myads_setup(msg)
+            uri = self.app.conf['API_SOLR_QUERY_ENDPOINT']+'?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(
+                       query=quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]'),
+                       sort=quote_plus('score desc, bibcode desc'),
+                       fields='bibcode,title,author_norm,identifier,year,bibstem',
+                       rows=2000)
             httpretty.register_uri(
-                httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={0}&sort={1}&fl={2}&rows={3}'.
-                               format('bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
-                                      'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
+                httpretty.GET, uri,
                 content_type='application/json',
                 status=200,
                 body=json.dumps({"responseHeader": {"status": 0,
@@ -194,7 +209,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                         "fl": "bibcode,title,author_norm",
                                                         "start": "0",
                                                         "sort": "score desc, bibcode desc",
-                                                        "rows": "5",
+                                                        "rows": "2000",
                                                         "wt": "json"}},
                                  "response": {"numFound": 2712,
                                               "start": 0,
@@ -231,10 +246,13 @@ class TestmyADSCelery(unittest.TestCase):
                                                         "year": "1965",
                                                         "bibstem": ["JSpRo"]}]}})
             )
+            uri = self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(
+                        query=quote_plus('bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]'),
+                        sort=quote_plus('score desc, bibcode desc'),
+                        fields='bibcode,title,author_norm',
+                        rows=2000)
             httpretty.register_uri(
-                httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={0}&sort={1}&fl={2}&rows={3}'.
-                               format('bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
-                                      'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
+                httpretty.GET, uri,
                 content_type='application/json',
                 status=200,
                 body=json.dumps({"responseHeader": {"status": 0,
@@ -245,7 +263,7 @@ class TestmyADSCelery(unittest.TestCase):
                                                         "fl": "bibcode,title,author_norm",
                                                         "start": "0",
                                                         "sort": "score desc, bibcode desc",
-                                                        "rows": "5",
+                                                        "rows": "2000",
                                                         "wt": "json"}},
                                  "response": {"numFound": 2712,
                                               "start": 0,
@@ -290,41 +308,13 @@ class TestmyADSCelery(unittest.TestCase):
 
         msg = {'userid': 123, 'frequency': 'daily', 'force': False}
 
+        uri = self.app.conf['API_SOLR_QUERY_ENDPOINT']+'?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(
+                    query=quote_plus('author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]'),
+                    sort=quote_plus('score desc, bibcode desc'),
+                    fields='bibcode,title,author_norm',
+                    rows=5)
         httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_VAULT_EXECUTE_QUERY'] % ('1234567890abcdefghijklmnopqrstu2', 'bibcode,title,author_norm', 10, 'bibcode+desc'),
-            content_type='application/json',
-            status=200,
-            body=json.dumps({u'response': {u'docs': [{u'bibcode': u'2019arXiv190800829P',
-                                                      u'title': [u'Gravitational wave signatures from an ' +
-                                                                 u'extended inert doublet dark matter model'],
-                                                      u'author_norm': [u'Paul, A', u'Banerjee, B', u'Majumdar, D'],
-                                                      u"identifier": [u"2019arXiv190800829P", u"arXiv:1908.00829"],
-                                                      u"year": u"2019",
-                                                      u"bibstem": [u"arXiv"]},
-                                                     {u'bibcode': u'2019arXiv190800678L',
-                                                      u'title': [u'Prospects for Gravitational Wave Measurement ' +
-                                                                 u'of ZTFJ1539+5027'],
-                                                      u'author_norm': [u'Littenberg, T', u'Cornish, N'],
-                                                      u"identifier": [u"2019arXiv190800678L", u"arXiv:1908.00678"],
-                                                      u"year": u"2019",
-                                                      u"bibstem": [u"arXiv"]}],
-                                           u'numFound': 2,
-                                           u'start': 0},
-                             u'responseHeader': {u'QTime': 5,
-                                                 u'params': {u'fl': u'bibcode,title,author_norm',
-                                                             u'fq': u'{!bitset}',
-                                                             u'q': u'*:*',
-                                                             u'rows': u'2',
-                                                             u'start': u'0',
-                                                             u'wt': u'json',
-                                                             u'x-amzn-trace-id':
-                                                                 u'Root=1-5d3b6518-3b417bec5eee25783a4147f4'},
-                                                 u'status': 0}})
-        )
-        httpretty.register_uri(
-            httpretty.GET, self.app.conf['API_SOLR_QUERY_ENDPOINT']+'?q={0}&sort={1}&fl={2}&rows={3}'.
-            format('author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
-                   'score+desc,+bibcode+desc', 'bibcode,title,author_norm', 5),
+            httpretty.GET, uri,
             content_type='application/json',
             status=200,
             body=json.dumps({"responseHeader": {"status": 0,

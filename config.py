@@ -19,7 +19,6 @@ API_ENDPOINT = 'https://api.adsabs.harvard.edu'
 API_SOLR_QUERY_ENDPOINT = API_ENDPOINT + '/v1/search/query/'
 API_VAULT_MYADS_USERS = API_ENDPOINT + '/v1/vault/myads-users/%s'
 API_VAULT_MYADS_SETUP = API_ENDPOINT + '/v1/vault/get-myads/%s'
-API_VAULT_EXECUTE_QUERY = API_ENDPOINT + '/v1/vault/execute_query/%s?fl=%s&rows=%s&sort=%s'
 API_ADSWS_USER_EMAIL = API_ENDPOINT + '/v1/user/%s'
 
 ARXIV_URL = 'https://ui.adsabs.harvard.edu/link_gateway/{0}/EPRINT_HTML?utm_source=myads&utm_medium=email&utm_campaign=type:{1}&utm_term={2}&utm_content=rank:{3}'
@@ -29,6 +28,8 @@ STATEFUL_RESULTS_DAYS = 7
 
 # Number of queries to switch from one to two column email format
 NUM_QUERIES_TWO_COL = 3
+MAX_NUM_ROWS_DAILY = 2000
+MAX_NUM_ROWS_WEEKLY = 5
 
 # Reschedule sending if there's an error (units=seconds)
 MYADS_RESEND_WINDOW = 60*10

@@ -32,3 +32,22 @@ of the given frequency, processes stateful results if necessary, builds and send
 
 ## Note
 Two cron jobs are needed, one with the daily flag turned on (processes M-F), one with the weekly flag turned on (processes after weekly ingest is complete)
+
+
+# Development
+ 
+## PostgreSQL on Ubuntu
+
+Unit tests require a local running postgres database. Run the following commands to install a postgres database in Ubuntu with full admin privileges for any user in the machine via the postgres DB user:
+
+```
+sudo apt install postgresql
+sudo sed -i 's/local   all             postgres                                peer/local   all             postgres                                trust/' /etc/postgresql/*/main/pg_hba.conf
+sudo systemctl restart postgresql
+sudo systemctl status postgresql
+psql -U postgres -c 'DROP DATABASE IF EXISTS test_myadspipeline'
+psql -U postgres -c 'CREATE DATABASE test_myadspipeline'
+psql -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE test_myadspipeline TO postgres'
+psql -U postgres -c "ALTER USER postgres with password 'postgres';"
+```
+

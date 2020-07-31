@@ -119,23 +119,38 @@ class TestmyADSCelery(unittest.TestCase):
 
     @httpretty.activate
     def test_get_query_results(self):
+        # General query
+        start = (adsputils.get_date() - datetime.timedelta(days=25)).date()
+        end = adsputils.get_date().date()
+        start_year = (adsputils.get_date() - datetime.timedelta(days=180)).year
         myADSsetup = {'name': 'Test Query',
                       'qid': 1,
                       'active': True,
                       'stateful': False,
                       'frequency': 'weekly',
                       'type': 'query',
+                      'template': None,
+                      'query': [{'q': 'author:Kurtz entdate:["{0}Z00:00" TO '
+                                      '"{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                 'sort': 'score desc'}],
                       'rows': 5,
                       'fields': 'bibcode,title,author_norm'}
 
         httpretty.register_uri(
-            httpretty.GET, self.app._config.get('API_VAULT_EXECUTE_QUERY') % (1, myADSsetup['fields'], 5, 'score+desc'),
+            httpretty.GET, '{endpoint}?q={query}&sort={sort}&fl={fields}&rows={rows}'.
+                         format(endpoint=self.app._config.get('API_SOLR_QUERY_ENDPOINT'),
+                                query=quote_plus('author:Kurtz '
+                                                 'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)),
+                                sort=quote_plus('score desc'),
+                                fields='bibcode,title,author_norm,identifier',
+                                rows=2000),
             content_type='application/json',
             status=200,
             body=json.dumps({"responseHeader": {"status": 0,
                                                 "QTime": 23,
-                                                "params": {"q": "author:Kurtz",
-                                                           "fl": "bibcode,title,author_norm",
+                                                "params": {"q": "author:Kurtz "
+                                                                'entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                                           "fl": "bibcode,title,author_norm,identifier",
                                                            "start": "0",
                                                            "sort": "score desc",
                                                            "rows": "5",
@@ -143,20 +158,29 @@ class TestmyADSCelery(unittest.TestCase):
                              "response": {"numFound": 1,
                                           "start": 0,
                                           "docs": [{"bibcode": "1971JVST....8..324K",
+                                                    "identifier": ["1971JVST....8..324K", "arXiv:1234:5678"],
                                                     "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                     "author_norm": ["Kurtz, J"]}]}})
         )
 
-        results = utils.get_query_results(myADSsetup)
+        results = utils.get_template_query_results(myADSsetup)
 
-        query_url = self.app._config.get('QUERY_ENDPOINT') % urlencode({"q": "author:Kurtz", "sort": "score desc"})
+        query_url = '{endpoint}{arguments}'. \
+                         format(endpoint=self.app._config.get('QUERY_ENDPOINT') % ("",),
+                                arguments=urlencode({
+                                    'q': 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year),
+                                    'sort': 'score desc',
+                                }, doseq=True))
+
         query_url = query_url + '?utm_source=myads&utm_medium=email&utm_campaign=type:{0}&utm_term={1}&utm_content=queryurl'
         self.assertEqual(results, [{'name': myADSsetup['name'],
                                     'query_url': query_url,
-                                    'results': [{"bibcode": "1971JVST....8..324K",
+                                    'results': [{u'arxiv_id': u'arXiv:1234:5678',
+                                                 "bibcode": "1971JVST....8..324K",
+                                                 "identifier": ["1971JVST....8..324K", "arXiv:1234:5678"],
                                                  "title": ["High-Capacity Lead Tin Barrel Dome Production Evaporator"],
                                                  "author_norm": ["Kurtz, J"]}],
-                                    "query": "author:Kurtz"
+                                    "query": 'author:Kurtz entdate:["{0}Z00:00" TO "{1}Z23:59"] pubdate:[{2}-00 TO *]'.format(start, end, start_year)
                                     }])
 
     @httpretty.activate

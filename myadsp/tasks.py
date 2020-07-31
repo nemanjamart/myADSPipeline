@@ -125,50 +125,35 @@ def task_process_myads(message):
             # only return 5 results, unless it's the daily arXiv posting, then return max
             # TODO should all stateful queries return all results or will this be overwhelming for some? well-cited
             # users can get 40+ new cites in one weekly astro update
-            if s['frequency'] == 'daily' and s['stateful'] is False:
-                s['rows'] = 2000
+            if s['frequency'] == 'daily':
+                s['rows'] = app.conf.get('MAX_NUM_ROWS_DAILY', 2000)
             else:
-                s['rows'] = 5
+                s['rows'] = app.conf.get('MAX_NUM_ROWS_WEEKLY', 5)
             s['fields'] = 'bibcode,title,author_norm,identifier,year,bibstem'
             if s['type'] == 'query':
                 qtype = 'general'
-                try:
-                    raw_results = utils.get_query_results(s)
-                except RuntimeError:
-                    if message.get('query_retries', None):
-                        retries = message['query_retries']
-                    else:
-                        retries = 0
-                    if retries < app.conf.get('TOTAL_RETRIES', 3):
-                        message['query_retries'] = retries + 1
-                        logger.warning('Error getting query results for user {0}. Retrying. Retry: {1}'.format(userid,
-                                                                                                               retries))
-                        task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
-                        return
-                    else:
-                        logger.warning('Maximum number of query retries attempted for user {0}; myADS processing '
-                                       'failed due to retrieving query results failures.'.format(userid))
             elif s['type'] == 'template':
                 qtype = s['template']
-                try:
-                    raw_results = utils.get_template_query_results(s)
-                except RuntimeError:
-                    if message.get('query_retries', None):
-                        retries = message['query_retries']
-                    else:
-                        retries = 0
-                    if retries < app.conf.get('TOTAL_RETRIES', 3):
-                        message['query_retries'] = retries + 1
-                        logger.warning('Error getting template query results for user {0}. Retrying. '
-                                       'Retry:'.format(userid, retries))
-                        task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
-                        return
-                    else:
-                        logger.warning('Maximum number of query retries attempted for user {0}; myADS processing '
-                                       'failed due to retrieving query results failures.'.format(userid))
             else:
                 logger.warning('Wrong query type passed for query {0}, user {1}'.format(s, userid))
-                pass
+                continue
+
+            try:
+                raw_results = utils.get_template_query_results(s)
+            except RuntimeError:
+                if message.get('query_retries', None):
+                    retries = message['query_retries']
+                else:
+                    retries = 0
+                if retries < app.conf.get('TOTAL_RETRIES', 3):
+                    message['query_retries'] = retries + 1
+                    logger.warning('Error getting template query results for user {0}. Retrying. '
+                                   'Retry:'.format(userid, retries))
+                    task_process_myads.apply_async(args=(message,), countdown=app.conf.get('MYADS_RESEND_WINDOW', 3600))
+                    return
+                else:
+                    logger.warning('Maximum number of query retries attempted for user {0}; myADS processing '
+                                   'failed due to retrieving query results failures.'.format(userid))
 
             for r in raw_results:
                 # for stateful queries, remove previously seen results, store new results
@@ -197,7 +182,7 @@ def task_process_myads(message):
                                 'id': s['id']})
         else:
             # wrong frequency for this round of processing
-            pass
+            continue
 
     if len(payload) == 0:
         logger.info('No payload for user {0} for the {1} email. No email was sent.'.format(userid, message['frequency']))
@@ -210,7 +195,7 @@ def task_process_myads(message):
         email = utils.get_user_email(userid=userid)
 
     if message['frequency'] == 'daily':
-        subject = 'Daily arXiv myADS Notification'
+        subject = 'Daily myADS Notification'
     else:
         subject = 'Weekly myADS Notification'
 
