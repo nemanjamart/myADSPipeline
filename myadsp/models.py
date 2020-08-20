@@ -23,7 +23,8 @@ class AuthorInfo(Base):
 
     id = Column(Integer, primary_key=True)
     created = Column(UTCDateTime)
-    last_sent = Column(UTCDateTime)
+    last_sent_daily = Column(UTCDateTime)
+    last_sent_weekly = Column(UTCDateTime)
 
 
 class Results(Base):

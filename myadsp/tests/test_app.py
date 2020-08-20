@@ -53,7 +53,7 @@ class TestmyADSCelery(unittest.TestCase):
         since = utils.get_date('2000-01-02')
 
         with self.app.session_scope() as session:
-            u1 = AuthorInfo(id=1, created=since, last_sent=since)
+            u1 = AuthorInfo(id=1, created=since, last_sent_daily=since, last_sent_weekly=since)
             session.add(u1)
             session.commit()
 
@@ -65,7 +65,7 @@ class TestmyADSCelery(unittest.TestCase):
             body='{"users":[2,3]}'
         )
 
-        users = app.get_users(since=since)
+        users = app.get_users(since=since, frequency='daily')
         self.assertEqual([1], users)
 
         # return both new and existing users if possible
@@ -76,7 +76,7 @@ class TestmyADSCelery(unittest.TestCase):
             body='{"users":[2,3]}'
         )
 
-        users = app.get_users(since=since)
+        users = app.get_users(since=since, frequency='daily')
         self.assertEqual([1,2,3], users)
 
     def test_get_recent_results(self):
