@@ -296,7 +296,7 @@ def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None
     logger.info('Processing {0} myADS queries since: {1}'.format(frequency, users_since_date.isoformat()))
 
     last_process_date = get_date()
-    all_users = app.get_users(users_since_date.isoformat())
+    all_users = app.get_users(users_since_date.isoformat(), frequency=frequency)
 
     for user in all_users:
         try:

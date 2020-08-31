@@ -304,7 +304,7 @@ class TestmyADSCelery(unittest.TestCase):
             tasks.task_process_myads(msg)
             with self.app.session_scope() as session:
                 user = session.query(AuthorInfo).filter_by(id=123).first()
-                self.assertEqual(adsputils.get_date().date(), user.last_sent.date())
+                self.assertEqual(adsputils.get_date().date(), user.last_sent_daily.date())
 
         msg = {'userid': 123, 'frequency': 'daily', 'force': False}
 
@@ -382,16 +382,19 @@ class TestmyADSCelery(unittest.TestCase):
             # reset user
             with self.app.session_scope() as session:
                 user = session.query(AuthorInfo).filter_by(id=123).first()
-                user.last_sent = None
+                user.last_sent_daily = None
+                user.last_sent_weekly = None
                 session.add(user)
                 session.commit()
 
             with self.app.session_scope() as session:
                 user = session.query(AuthorInfo).filter_by(id=123).first()
-                self.assertIsNone(user.last_sent)
+                self.assertIsNone(user.last_sent_daily)
+                self.assertIsNone(user.last_sent_weekly)
 
             tasks.task_process_myads(msg)
 
             with self.app.session_scope() as session:
                 user = session.query(AuthorInfo).filter_by(id=123).first()
-                self.assertEqual(adsputils.get_date().date(), user.last_sent.date())
+                self.assertEqual(adsputils.get_date().date(), user.last_sent_weekly.date())
+                self.assertIsNone(user.last_sent_daily)

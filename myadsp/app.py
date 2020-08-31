@@ -8,16 +8,22 @@ from sqlalchemy.orm import exc as ormexc
 
 class myADSCelery(ADSCelery):
 
-    def get_users(self, since='1971-01-01T12:00:00Z'):
+    def get_users(self, since='1971-01-01T12:00:00Z', frequency=None):
         """
         Checks internal storage and vault for all existing and new/updated myADS users. Adds new users to authors table (last_sent should be blank)
         :param since: used to fetch new users who registered after this date
         :return: list of user_ids
         """
+        if frequency == 'daily':
+            last_sent_field = AuthorInfo.last_sent_daily
+        elif frequency == 'weekly':
+            last_sent_field = AuthorInfo.last_sent_weekly
+        else:
+            raise RuntimeError('Must pass frequency')
 
         user_ids = set()
         with self.session_scope() as session:
-            for q in session.query(AuthorInfo).filter(AuthorInfo.last_sent < get_date()).all():
+            for q in session.query(AuthorInfo).filter(last_sent_field < get_date()).all():
                 user_ids.add(q.id)
 
         r = self.client.get(self._config.get('API_VAULT_MYADS_USERS') % get_date(since).isoformat(),
@@ -33,7 +39,7 @@ class myADSCelery(ADSCelery):
                 try:
                     q = session.query(AuthorInfo).filter_by(id=n).one()
                 except ormexc.NoResultFound:
-                    author = AuthorInfo(id=n, created=get_date(), last_sent=None)
+                    author = AuthorInfo(id=n, created=get_date(), last_sent_daily=None, last_sent_weekly=None)
                     with self.session_scope() as session:
                         session.add(author)
                         session.commit()

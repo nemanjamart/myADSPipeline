@@ -51,14 +51,17 @@ def task_process_myads(message):
     with app.session_scope() as session:
         try:
             q = session.query(AuthorInfo).filter_by(id=userid).one()
-            last_sent = q.last_sent
+            if message['frequency'] == 'daily':
+                last_sent = q.last_sent_daily
+            else:
+                last_sent = q.last_sent_weekly
         except ormexc.NoResultFound:
-            author = AuthorInfo(id=userid, created=adsputils.get_date(), last_sent=None)
+            author = AuthorInfo(id=userid, created=adsputils.get_date(), last_sent_daily=None, last_sent_weekly=None)
             session.add(author)
             session.flush()
-            last_sent = author.last_sent
+            last_sent = None
             session.commit()
-        if message['frequency'] == 'daily' and last_sent and last_sent.date() == adsputils.get_date().date():
+        if last_sent and last_sent.date() == adsputils.get_date().date():
             # already sent email today
             if not message['force']:
                 logger.warning('Email for user {0} already sent today'.format(userid))
@@ -67,9 +70,14 @@ def task_process_myads(message):
                 logger.info('Email for user {0} already sent today, but force mode is on'.format(userid))
 
     # first fetch the myADS setup from /vault/get-myads
-    r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP') % userid,
-                       headers={'Accept': 'application/json',
-                                'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
+    if last_sent:
+        r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP_DATE') % userid, last_sent,
+                           headers={'Accept': 'application/json',
+                                    'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
+    else:
+        r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP') % userid,
+                           headers={'Accept': 'application/json',
+                                    'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
 
     if r.status_code != 200:
         if message.get('retries', None):
@@ -214,8 +222,10 @@ def task_process_myads(message):
         # update author table w/ last sent datetime
         with app.session_scope() as session:
             q = session.query(AuthorInfo).filter_by(id=userid).one()
-            # should we set "last_sent" for both weekly and daily queries?
-            q.last_sent = adsputils.get_date()
+            if message['frequency'] == 'daily':
+                q.last_sent_daily = adsputils.get_date()
+            else:
+                q.last_sent_weekly = adsputils.get_date()
 
             session.commit()
 
