@@ -71,7 +71,7 @@ def task_process_myads(message):
 
     # first fetch the myADS setup from /vault/get-myads
     if last_sent:
-        r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP_DATE') % userid, last_sent,
+        r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP_DATE') % (userid, last_sent),
                            headers={'Accept': 'application/json',
                                     'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
     else:
