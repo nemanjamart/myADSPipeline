@@ -4,6 +4,7 @@ import os
 import json
 import httpretty
 from mock import patch
+import datetime
 try:
     from urllib.parse import quote_plus
 except ImportError:
@@ -185,6 +186,7 @@ class TestmyADSCelery(unittest.TestCase):
             payload_to_html.return_value = '<em>html payload</em>'
             send_email.return_value = 'this should be a MIMEMultipart object'
 
+            # non-200 from solr, so task should get tried again
             tasks.task_process_myads(msg)
             self.assertTrue(rerun_task.called)
 
@@ -391,6 +393,70 @@ class TestmyADSCelery(unittest.TestCase):
                 user = session.query(AuthorInfo).filter_by(id=123).first()
                 self.assertIsNone(user.last_sent_daily)
                 self.assertIsNone(user.last_sent_weekly)
+
+            tasks.task_process_myads(msg)
+
+            with self.app.session_scope() as session:
+                user = session.query(AuthorInfo).filter_by(id=123).first()
+                self.assertEqual(adsputils.get_date().date(), user.last_sent_weekly.date())
+                self.assertIsNone(user.last_sent_daily)
+
+            # postdate the weekly last_sent date
+            with self.app.session_scope() as session:
+                user = session.query(AuthorInfo).filter_by(id=123).first()
+                user.last_sent_weekly = user.last_sent_weekly - datetime.timedelta(days=30)
+                last_sent_weekly = user.last_sent_weekly
+                session.add(user)
+                session.commit()
+
+            start_date = last_sent_weekly + datetime.timedelta(days=1)
+            uri = self.app.conf['API_VAULT_MYADS_SETUP_DATE'] % (msg['userid'], start_date)
+            httpretty.register_uri(
+                httpretty.GET, uri,
+                content_type='application/json',
+                status=200,
+                body=json.dumps([{'id': 1,
+                                  'name': 'Query 1',
+                                  'qid': '1234567890abcdefghijklmnopqrstu1',
+                                  'active': True,
+                                  'stateful': True,
+                                  'frequency': 'daily',
+                                  'type': 'query',
+                                  'template': None,
+                                  'query': [{'q': 'title:"gravity waves" ' +
+                                                  'entdate:[2019-08-03 TO 2019-08-04] bibstem:"arxiv"',
+                                             'sort': 'score desc, bibcode desc'}]},
+                                 {'id': 2,
+                                  'name': 'Query 2',
+                                  'qid': None,
+                                  'active': True,
+                                  'stateful': False,
+                                  'frequency': 'weekly',
+                                  'type': 'template',
+                                  'template': 'authors',
+                                  'data': {'data': 'author:Kurtz'},
+                                  'query': [{
+                                                'q': 'author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                                'sort': 'score desc, bibcode desc'}]},
+                                 {'id': 3,
+                                  'name': 'Query 3',
+                                  'qid': None,
+                                  'active': True,
+                                  'stateful': True,
+                                  'frequency': 'daily',
+                                  'type': 'template',
+                                  'template': 'arxiv',
+                                  'data': 'star',
+                                  'classes': ['astro-ph'],
+                                  'query': [{'q': 'bibstem:arxiv (arxiv_class:(astro-ph.*) (star)) '
+                                                  'entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                             'sort': 'score desc, bibcode desc'},
+                                            {'q': 'bibstem:arxiv (arxiv_class:(astro-ph.*) NOT (star)) '
+                                                  'entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                             'sort': 'bibcode desc'}]
+                                  }
+                                 ])
+            )
 
             tasks.task_process_myads(msg)
 

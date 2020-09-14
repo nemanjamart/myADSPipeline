@@ -9,6 +9,7 @@ from .emails import myADSTemplate
 from kombu import Queue
 import os
 import json
+import datetime
 from sqlalchemy.orm import exc as ormexc
 
 # ============================= INITIALIZATION ==================================== #
@@ -71,7 +72,9 @@ def task_process_myads(message):
 
     # first fetch the myADS setup from /vault/get-myads
     if last_sent:
-        r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP_DATE') % (userid, last_sent),
+        # the start date should be one day after the last sent date, so the results don't overlap
+        start_date = last_sent + datetime.timedelta(days=1)
+        r = app.client.get(app.conf.get('API_VAULT_MYADS_SETUP_DATE') % (userid, start_date),
                            headers={'Accept': 'application/json',
                                     'Authorization': 'Bearer {0}'.format(app.conf.get('API_TOKEN'))})
     else:
