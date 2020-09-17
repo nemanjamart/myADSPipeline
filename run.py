@@ -51,7 +51,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
 
     arxiv_records = []
     try:
-        with gzip.open(arxiv_file, 'r') as flist:
+        with gzip.open(arxiv_file, 'rt') as flist:
             for l in flist.readlines():
                 # sample line: oai/arXiv.org/0706/2491 2018-06-13T01:00:29
                 arxiv_records.append(l.split()[0])
@@ -163,7 +163,7 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     while total_delay < sleep_timeout:
         astro_records = []
         try:
-            with open(astro_file, 'r') as flist:
+            with open(astro_file, 'rt') as flist:
                 for l in flist.readlines():
                     # sample line: 2019A&A...632A..94J     K58-37447
                     astro_records.append(l.split()[0])
