@@ -1,3 +1,5 @@
+from __future__ import print_function
+from past.builtins import basestring
 from adsputils import setup_logging, get_date, load_config
 from myadsp import tasks, utils
 from myadsp.models import KeyValue
@@ -304,7 +306,7 @@ def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None
                                             'test_bibcode': test_bibcode})
         except:  # potential backpressure (we are too fast)
             time.sleep(2)
-            print 'Conn problem, retrying...', user
+            print('Conn problem, retrying...', user)
             tasks.task_process_myads.delay({'userid': user, 'frequency': frequency, 'force': force,
                                             'test_bibcode': test_bibcode})
 
@@ -324,7 +326,7 @@ def process_myads(since=None, user_ids=None, user_emails=None, test_send_to=None
             kv.value = last_process_date.isoformat()
         session.commit()
 
-    print 'Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users))
+    print('Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users)))
     logger.info('Done submitting {0} myADS processing tasks for {1} users.'.format(frequency, len(all_users)))
 
 
