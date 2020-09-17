@@ -65,8 +65,8 @@ def send_email(email_addr='', email_template=Email, payload_plain=None, payload_
     msg["Subject"] = subject
     msg["From"] = config.get('MAIL_DEFAULT_SENDER')
     msg["To"] = email_addr
-    plain = MIMEText(email_template.msg_plain.format(payload=payload_plain.encode('ascii', 'ignore')), "plain")
-    html = MIMEText(email_template.msg_html.format(payload=payload_html.encode('ascii', 'ignore'), email_address=email_addr), "html")
+    plain = MIMEText(email_template.msg_plain.format(payload=payload_plain), "plain")
+    html = MIMEText(email_template.msg_html.format(payload=payload_html, email_address=email_addr), "html")
     msg.attach(plain)
     msg.attach(html)
 
