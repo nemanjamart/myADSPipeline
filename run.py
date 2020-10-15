@@ -394,6 +394,13 @@ if __name__ == '__main__':
                        default=0,
                        help='Wait these many seconds after ingest to allow SOLR searchers to be in sync')
 
+    parser.add_argument('-m',
+                        '--manual',
+                        dest='manual',
+                        action='store_true',
+                        default=False,
+                        help='Manually force processing, skipping the arxiv/astronomy completion check')
+
     args = parser.parse_args()
 
     if args.user_ids:
@@ -403,44 +410,54 @@ if __name__ == '__main__':
         args.user_emails = [x.strip() for x in args.user_emails.split(',')]
 
     if args.daily_update:
-        arxiv_complete = False
-        try:
-            arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
-        except Exception as e:
-            logger.warning('arXiv ingest: code failed with an exception: {0}'.format(e))
-        if arxiv_complete:
-            logger.info('arxiv ingest: complete')
-            if args.wait_send:
-                logger.info('arxiv ingest: waiting {0} seconds for all SOLR searchers to sync data'.format(args.wait_send))
-                time.sleep(args.wait_send)
-            logger.info('arxiv ingest: starting processing')
-            process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
-                          frequency='daily', test_bibcode=arxiv_complete)
+        if args.manual:
+            logger.info('Manual processing on; skipping arXiv ingest completion check')
+            process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email,
+                          args.force, frequency='daily', test_bibcode=None)
         else:
-            logger.warning('arXiv ingest: failed.')
-            if args.admin_email:
-                msg = utils.send_email(email_addr=args.admin_email,
-                                       payload_plain='Error in the arXiv ingest',
-                                       payload_html='Error in the arXiv ingest',
-                                       subject='arXiv ingest failed')
+            arxiv_complete = False
+            try:
+                arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+            except Exception as e:
+                logger.warning('arXiv ingest: code failed with an exception: {0}'.format(e))
+            if arxiv_complete:
+                logger.info('arxiv ingest: complete')
+                if args.wait_send:
+                    logger.info('arxiv ingest: waiting {0} seconds for all SOLR searchers to sync data'.format(args.wait_send))
+                    time.sleep(args.wait_send)
+                logger.info('arxiv ingest: starting processing')
+                process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
+                              frequency='daily', test_bibcode=arxiv_complete)
+            else:
+                logger.warning('arXiv ingest: failed.')
+                if args.admin_email:
+                    msg = utils.send_email(email_addr=args.admin_email,
+                                           payload_plain='Error in the arXiv ingest',
+                                           payload_html='Error in the arXiv ingest',
+                                           subject='arXiv ingest failed')
     if args.weekly_update:
-        astro_complete = False
-        try:
-            astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
-        except Exception as e:
-            logger.warning('astro ingest: code failed with an exception: {0}'.format(e))
-        if astro_complete:
-            logger.info('astro ingest: complete')
-            if args.wait_send:
-                logger.info('astro ingest: waiting {0} seconds for all SOLR searchers to sync data'.format(args.wait_send))
-                time.sleep(args.wait_send)
-            logger.info('astro ingest: starting processing now')
-            process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
-                          frequency='weekly', test_bibcode=astro_complete)
+        if args.manual:
+            logger.info('Manual processing on; skipping astronomy ingest completion check')
+            process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email,
+                          args.force, frequency='weekly', test_bibcode=None)
         else:
-            logger.warning('astro ingest: failed.')
-            if args.admin_email:
-                msg = utils.send_email(email_addr=args.admin_email,
-                                       payload_plain='Error in the astronomy ingest',
-                                       payload_html='Error in the astronomy ingest',
-                                       subject='Astronomy ingest failed')
+            astro_complete = False
+            try:
+                astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+            except Exception as e:
+                logger.warning('astro ingest: code failed with an exception: {0}'.format(e))
+            if astro_complete:
+                logger.info('astro ingest: complete')
+                if args.wait_send:
+                    logger.info('astro ingest: waiting {0} seconds for all SOLR searchers to sync data'.format(args.wait_send))
+                    time.sleep(args.wait_send)
+                logger.info('astro ingest: starting processing now')
+                process_myads(args.since_date, args.user_ids, args.user_emails, args.test_send_to, args.admin_email, args.force,
+                              frequency='weekly', test_bibcode=astro_complete)
+            else:
+                logger.warning('astro ingest: failed.')
+                if args.admin_email:
+                    msg = utils.send_email(email_addr=args.admin_email,
+                                           payload_plain='Error in the astronomy ingest',
+                                           payload_html='Error in the astronomy ingest',
+                                           subject='Astronomy ingest failed')
