@@ -165,6 +165,7 @@ def task_process_myads(message):
                 else:
                     logger.warning('Maximum number of query retries attempted for user {0}; myADS processing '
                                    'failed due to retrieving query results failures.'.format(userid))
+                    continue
 
             for r in raw_results:
                 # for stateful queries, remove previously seen results, store new results
