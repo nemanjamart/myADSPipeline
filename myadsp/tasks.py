@@ -131,6 +131,7 @@ def task_process_myads(message):
     # then execute each qid /vault/execute-query/qid
     setup = r.json()
     payload = []
+    has_results = 0
     for s in setup:
         if s['frequency'] == message['frequency']:
             # only return 5 results, unless it's the daily arXiv posting, then return max
@@ -186,6 +187,11 @@ def task_process_myads(message):
                 else:
                     results = r['results']
 
+                # keep track of queries that have returned results
+                if results:
+                    has_results += 1
+
+                # even if a query doesn't have results, still include it in the email for completeness
                 payload.append({'name': r['name'],
                                 'query_url': r['query_url'],
                                 'results': results,
@@ -196,7 +202,8 @@ def task_process_myads(message):
             # wrong frequency for this round of processing
             continue
 
-    if len(payload) == 0:
+    # don't send the email if there are no matching queries or if all matching queries return no results
+    if len(payload) == 0 or has_results == 0:
         logger.info('No payload for user {0} for the {1} email. No email was sent.'.format(userid, message['frequency']))
         return
 
