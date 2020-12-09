@@ -464,3 +464,49 @@ class TestmyADSCelery(unittest.TestCase):
                 user = session.query(AuthorInfo).filter_by(id=123).first()
                 self.assertEqual(adsputils.get_date().date(), user.last_sent_weekly.date())
                 self.assertIsNone(user.last_sent_daily)
+
+            # check that email with no results isn't sent
+            uri = self.app.conf['API_SOLR_QUERY_ENDPOINT'] + '?q={query}&sort={sort}&fl={fields}&rows={rows}'.format(
+                query=quote_plus(
+                    'author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]'),
+                sort=quote_plus('score desc, bibcode desc'),
+                fields='bibcode,title,author_norm',
+                rows=5)
+            httpretty.register_uri(
+                httpretty.GET, uri,
+                content_type='application/json',
+                status=200,
+                body=json.dumps({"responseHeader": {"status": 0,
+                                                    "QTime": 23,
+                                                    "params": {
+                                                        "q": 'author:Kurtz entdate:["2020-01-01Z00:00" TO "2020-01-01Z23:59"] pubdate:[2019-00 TO *]',
+                                                        "x-amzn-trace-id": "Root=1-5d769c6c-f96bfa49d348f03d8ecb7464",
+                                                        "fl": "bibcode,title,author_norm",
+                                                        "start": "0",
+                                                        "sort": "score desc, bibcode desc",
+                                                        "rows": "5",
+                                                        "wt": "json"}},
+                                 "response": {"numFound": 2712,
+                                              "start": 0,
+                                              "docs": []}})
+            )
+
+            msg = {'userid': 123, 'frequency': 'weekly'}
+
+            # reset user
+            with self.app.session_scope() as session:
+                user = session.query(AuthorInfo).filter_by(id=123).first()
+                user.last_sent_daily = None
+                user.last_sent_weekly = None
+                session.add(user)
+                session.commit()
+
+            with self.app.session_scope() as session:
+                user = session.query(AuthorInfo).filter_by(id=123).first()
+                self.assertIsNone(user.last_sent_daily)
+                self.assertIsNone(user.last_sent_weekly)
+
+            with patch.object(tasks.logger, 'info', return_value=None) as logger:
+                tasks.task_process_myads(msg)
+                logger.assert_called_with(u"No payload for user {0} for the {1} email. No email was sent.".format(msg['userid'], msg['frequency']))
+
