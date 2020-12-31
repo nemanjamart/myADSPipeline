@@ -47,13 +47,13 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
     else:
         date = get_date(date).strftime('%Y-%m-%d')
 
-    arxiv_file = config.get('ARXIV_UPDATE_AGENT_DIR') + '/UpdateAgent.out.' + date + '.gz'
+    arxiv_file = os.path.join(config.get('ARXIV_INCOMING_ABS_DIR'), date, 'new_records.tsv')
 
     arxiv_records = []
     try:
-        with gzip.open(arxiv_file, 'rt') as flist:
+        with open(arxiv_file, 'rt') as flist:
             for l in flist.readlines():
-                # sample line: oai/arXiv.org/0706/2491 2018-06-13T01:00:29
+                # sample line: 2012.14424	oai/arXiv.org/2012/14424
                 arxiv_records.append(l.split()[0])
     except IOError:
         logger.warning('arXiv ingest file not found. Exiting.')
@@ -61,18 +61,8 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
 
     arxiv_records.sort()
 
-    # get the highest numbered ID
-    is_new = False
-    while is_new is False:
-        last_record = arxiv_records.pop()
-        try:
-            test_new = float(last_record.split('/')[-2])
-            is_new = True
-        except ValueError:
-            continue
-
     # get most recent arXiv id to test ingest later
-    last_id = '.'.join(last_record.split('/')[-2:])
+    last_id = arxiv_records.pop()
 
     total_delay = 0
     while total_delay < sleep_timeout:
@@ -97,7 +87,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
             logger.error('Too many records returned for id {0}'.format(last_id))
 
         logger.info('Numfound: {0} for test id {1}. Response: {2}. URL: {3}'.format(numfound, last_id,
-                                                                                         json.dumps(r.json()), r.url))
+                                                                                    json.dumps(r.json()), r.url))
 
         # check number of bibcodes from ingest
         if get_date().weekday() == 0:
@@ -107,7 +97,7 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         beg_pubyear = (get_date() - datetime.timedelta(days=180)).year
         q = app.client.get('{0}?q={1}'.format(config.get('API_SOLR_QUERY_ENDPOINT'),
                                               quote_plus('bibstem:arxiv entdate:["{0}Z00:00" TO NOW] '
-                                                                'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
+                                                         'pubdate:[{1}-00 TO *]'.format(start_date, beg_pubyear))),
                            headers={'Authorization': 'Bearer ' + config.get('API_TOKEN')})
         logger.info('Total number of arXiv bibcodes ingested: {}'.format(q.json()['response']['numFound']))
 

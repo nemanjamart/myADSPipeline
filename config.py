@@ -43,8 +43,7 @@ ARXIV_TIMEDELTA_DAYS = 1
 ASTRO_TIMEDELTA_DAYS = 3
 
 # Directories for incoming arXiv submissions
-ARXIV_INCOMING_ABS_DIR = '/proj/ads/abstracts/sources/ArXiv'
-ARXIV_UPDATE_AGENT_DIR = ARXIV_INCOMING_ABS_DIR + '/UpdateAgent'
+ARXIV_INCOMING_ABS_DIR = '/proj/ads/abstracts/sources/ArXiv/log'
 
 # Directory for incoming astronomy articles
 ASTRO_INCOMING_DIR = '/proj/ads/abstracts/ast/index/current/'
