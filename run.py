@@ -33,7 +33,7 @@ app = tasks.app
 
 # =============================== FUNCTIONS ======================================= #
 
-def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
+def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_email=None):
     """
     Check if new arXiv records are in Solr - run before running myADS processing
     :param date: date to check arXiv records for; default is set by days-delta from today in config (times in local time)
@@ -57,6 +57,12 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
                 arxiv_records.append(l.split()[0])
     except IOError:
         logger.warning('arXiv ingest file not found. Exiting.')
+        if admin_email:
+            msg_text = 'The arXiv ingest file for today was not found.'
+            msg = utils.send_email(email_addr=admin_email,
+                                   payload_plain=msg_text,
+                                   payload_html=msg_text,
+                                   subject='arXiv ingest failed')
         return None
 
     arxiv_records.sort()
@@ -104,11 +110,17 @@ def _arxiv_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         return last_id
 
     logger.warning('arXiv ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
+    if admin_email:
+        msg_text = 'The arXiv ingest was not replicated to production Solr before timeout reached.'
+        msg = utils.send_email(email_addr=admin_email,
+                               payload_plain=msg_text,
+                               payload_html=msg_text,
+                               subject='arXiv ingest failed')
 
     return None
 
 
-def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
+def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200, admin_email=None):
     """
     Check if new astronomy records are in Solr; run before weekly processing
     :param date: check to check against astronomy bibcode list last updated date
@@ -146,6 +158,14 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
             # timeout reached before astronomy update completed
             logger.warning('Astronomy update did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
 
+            if admin_email:
+                msg_text = 'Astronomy ingest file has not been updated recently, and timeout limit for waiting for ' \
+                           'update has been reached.'
+                msg = utils.send_email(email_addr=admin_email,
+                                       payload_plain=msg_text,
+                                       payload_html=msg_text,
+                                       subject='Astronomy ingest failed')
+
             return None
 
     # make sure the ingest file exists and has enough bibcodes
@@ -173,6 +193,13 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
         else:
             break
     else:
+        if admin_email:
+            msg_text = 'The astronomy ingest file has been updated recently, but there was an error opening it ' \
+                       'and/or it has very few records. The timeout limit for waiting for the update has been reached.'
+            msg = utils.send_email(email_addr=admin_email,
+                                   payload_plain=msg_text,
+                                   payload_html=msg_text,
+                                   subject='Astronomy ingest failed')
         return None
 
     # get several randomly selected bibcodes, in case one had ingest issues
@@ -218,6 +245,13 @@ def _astro_ingest_complete(date=None, sleep_delay=60, sleep_timeout=7200):
             return s
 
     logger.warning('Astronomy ingest did not complete within the {0}s timeout limit. Exiting.'.format(sleep_timeout))
+
+    if admin_email:
+        msg_text = 'The astronomy ingest was not replicated to production Solr before timeout reached.'
+        msg = utils.send_email(email_addr=admin_email,
+                               payload_plain=msg_text,
+                               payload_html=msg_text,
+                               subject='Astronomy ingest failed')
 
     return None
 
@@ -407,7 +441,7 @@ if __name__ == '__main__':
         else:
             arxiv_complete = False
             try:
-                arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+                arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000, admin_email=args.admin_email)
             except Exception as e:
                 logger.warning('arXiv ingest: code failed with an exception: {0}'.format(e))
             if arxiv_complete:
@@ -420,11 +454,7 @@ if __name__ == '__main__':
                               frequency='daily', test_bibcode=arxiv_complete)
             else:
                 logger.warning('arXiv ingest: failed.')
-                if args.admin_email:
-                    msg = utils.send_email(email_addr=args.admin_email,
-                                           payload_plain='Error in the arXiv ingest',
-                                           payload_html='Error in the arXiv ingest',
-                                           subject='arXiv ingest failed')
+
     if args.weekly_update:
         if args.manual:
             logger.info('Manual processing on; skipping astronomy ingest completion check')
@@ -433,7 +463,7 @@ if __name__ == '__main__':
         else:
             astro_complete = False
             try:
-                astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000)
+                astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000, admin_email=args.admin_email)
             except Exception as e:
                 logger.warning('astro ingest: code failed with an exception: {0}'.format(e))
             if astro_complete:
@@ -446,8 +476,3 @@ if __name__ == '__main__':
                               frequency='weekly', test_bibcode=astro_complete)
             else:
                 logger.warning('astro ingest: failed.')
-                if args.admin_email:
-                    msg = utils.send_email(email_addr=args.admin_email,
-                                           payload_plain='Error in the astronomy ingest',
-                                           payload_html='Error in the astronomy ingest',
-                                           subject='Astronomy ingest failed')

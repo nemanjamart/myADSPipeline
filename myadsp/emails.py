@@ -5,8 +5,8 @@ class Email(object):
     """
     Data structure that contains email content data
     """
-    msg_plain = ''
-    msg_html = ''
+    msg_plain = """{payload}"""
+    msg_html = """{payload}"""
     subject = u''
     salt = ''
 
