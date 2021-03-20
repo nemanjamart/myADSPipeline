@@ -1,5 +1,5 @@
 adsputils==v1.2.7
 alembic==0.9.1
 psycopg2==2.8.3
-Jinja2==2.11.2
+Jinja2==2.11.3
 portalocker==1.7.1
