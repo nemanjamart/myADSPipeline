@@ -4,6 +4,7 @@ from adsputils import setup_logging, get_date, load_config
 from myadsp import tasks, utils
 from myadsp.models import KeyValue
 
+import sys
 import os
 import time
 import argparse
@@ -444,6 +445,7 @@ if __name__ == '__main__':
                 arxiv_complete = _arxiv_ingest_complete(sleep_delay=300, sleep_timeout=36000, admin_email=args.admin_email)
             except Exception as e:
                 logger.warning('arXiv ingest: code failed with an exception: {0}'.format(e))
+                sys.exit(1)
             if arxiv_complete:
                 logger.info('arxiv ingest: complete')
                 if args.wait_send:
@@ -454,6 +456,7 @@ if __name__ == '__main__':
                               frequency='daily', test_bibcode=arxiv_complete)
             else:
                 logger.warning('arXiv ingest: failed.')
+                sys.exit(1)
 
     if args.weekly_update:
         if args.manual:
@@ -466,6 +469,7 @@ if __name__ == '__main__':
                 astro_complete = _astro_ingest_complete(sleep_delay=300, sleep_timeout=36000, admin_email=args.admin_email)
             except Exception as e:
                 logger.warning('astro ingest: code failed with an exception: {0}'.format(e))
+                sys.exit(1)
             if astro_complete:
                 logger.info('astro ingest: complete')
                 if args.wait_send:
@@ -476,3 +480,4 @@ if __name__ == '__main__':
                               frequency='weekly', test_bibcode=astro_complete)
             else:
                 logger.warning('astro ingest: failed.')
+                sys.exit(1)
