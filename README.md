@@ -50,4 +50,3 @@ psql -U postgres -c 'CREATE DATABASE test_myadspipeline'
 psql -U postgres -c 'GRANT ALL PRIVILEGES ON DATABASE test_myadspipeline TO postgres'
 psql -U postgres -c "ALTER USER postgres with password 'postgres';"
 ```
-
