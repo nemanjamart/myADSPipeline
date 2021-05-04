@@ -1,0 +1,80 @@
+name: Python CI actions
+
+on: [pull_request]
+env:
+  PGDATABASE: test_myadspipeline
+  PGPASSWORD: postgres
+  PGUSER: postgres
+  PGHOST: localhost
+  PGPORT: 5432
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:9.6
+        env:
+          POSTGRES_DB: test_myadspipeline
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+
+        ports:
+          - 5432:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 2.7
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade wheel setuptools pip
+        pip install -U -r requirements.txt
+        pip install -U -r dev-requirements.txt
+
+    - name: Test with pytest
+      run: |
+        py.test
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: coverage-myads
+        path: .coverage
+
+
+  coveralls:
+
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade wheel setuptools pip
+        pip install coverage==5.2.1
+        pip install coveralls==2.2.0
+    - uses: actions/download-artifact@master
+      with:
+        name: coverage-myads
+
+    - name: Coveralls
+      run: coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
